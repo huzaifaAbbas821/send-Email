@@ -26,9 +26,8 @@ const Verify = () => {
   }, [location]);
 
   return (
-    <div>
-      <h2 className='bg-black w-screen h-screen'>{message}</h2>
-      <div className='bg-black text-yellow-500 text-center text-4xl'>Well to my website</div>
+    <div className='w-screen h-screen flex justify-center items-center '>
+      <div className='bg-black  text-yellow-500 text-center text-4xl'>Well to my website</div>
     </div>
   );
 };
