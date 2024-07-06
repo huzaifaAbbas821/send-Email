@@ -27,8 +27,8 @@ const Verify = () => {
 
   return (
     <div>
-      <h2>{message}</h2>
-      <Authenticated/>
+      <h2 className='bg-black w-screen h-screen'>{message}</h2>
+      <div className='bg-black text-yellow-500 text-center text-4xl'>Well to my website</div>
     </div>
   );
 };
