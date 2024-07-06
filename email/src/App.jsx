@@ -1,13 +1,33 @@
-import { useState } from 'react'
-import Login from './Components/Login'
+// import { useState } from 'react'
+// import Login from './Components/Login'
 
-function App() {
 
+// function App() {
+
+//   return (
+//     <>
+//       <Login/>
+//     </>
+//   )
+// }
+
+// export default App
+// src/App.js
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Login from './Components/Login';
+import Verify from './Components/Verify';
+
+const App = () => {
   return (
-    <>
-      <Login/>
-    </>
-  )
-}
+    <Router>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/verify-token" element={<Verify />} />
+      </Routes>
+    </Router>
+  );
+};
 
-export default App
+export default App;
+
