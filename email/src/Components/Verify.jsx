@@ -13,7 +13,7 @@ const Verify = () => {
     const token = queryParams.get('token');
 
     if (token) {
-      axios.get(`http://localhost:3001/verify-token?token=${token}`)
+      axios.get(`https://send-email-murex.vercel.app/verify-token?token=${token}`)
         .then(response => {
           setMessage(response.data.message);
         })
