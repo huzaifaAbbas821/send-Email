@@ -12,7 +12,7 @@ function Login() {
     }
 
     try {
-      const response = await fetch("http://localhost:3001/login-email", {
+      const response = await fetch("https://send-email-5cha.vercel.app/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
