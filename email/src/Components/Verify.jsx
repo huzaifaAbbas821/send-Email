@@ -26,8 +26,8 @@ const Verify = () => {
   }, [location]);
 
   return (
-    <div className='w-screen h-screen flex justify-center items-center '>
-      <div className='bg-black  text-yellow-500 text-center text-4xl'>Well to my website</div>
+    <div className='w-screen h-screen bg-black flex justify-center items-center '>
+      <div className='  text-yellow-500 text-center text-4xl'>Well to my website</div>
     </div>
   );
 };
