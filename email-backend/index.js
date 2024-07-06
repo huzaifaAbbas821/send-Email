@@ -62,10 +62,10 @@ app.get('/verify-token', (req, res) => {
   });
 });
 
-// Catch-all route for undefined routes
-app.use((req, res, next) => {
-  res.status(404).json({ message: 'Route not found' });
-});
+// // Catch-all route for undefined routes
+// app.use((req, res, next) => {
+//   res.status(404).json({ message: 'Route not found' });
+// });
 
 app.listen(3001, () => {
   console.log('Server is running on port 3001');
