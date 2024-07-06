@@ -1,10 +1,27 @@
-{"routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+{
+    "version": 2,
+    "name": "your-project-name",
+    "builds": [
+      {
+        "src": "package.json",
+        "use": "@vercel/static-build",
+        "config": {
+          "distDir": "build"
+        }
+      }
+    ],
+    "routes": [
+      {
+        "src": "/static/(.*)",
+        "dest": "/static/$1"
+      },
+      {
+        "src": "/(.*)",
+        "dest": "/index.html"
+      }
+    ],
+    "env": {
+      "REACT_APP_API_URL": "http://your-backend-domain.com"
     }
-  ],
-  "env": {
-    "REACT_APP_API_URL": "http://localhost:3001"
   }
-}
+  
