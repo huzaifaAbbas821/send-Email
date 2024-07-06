@@ -31,7 +31,7 @@ app.post('/login-email', async (req, res) => {
   }
 
   const token = jwt.sign({ email }, secret, { expiresIn: '10m' });
-  const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
+  const loginLink = `https://send-email-vgp4.vercel.app/verify-token?token=${token}`;
 
   const mailOptions = {
     from: emailUser,
@@ -60,6 +60,11 @@ app.get('/verify-token', (req, res) => {
 
     res.status(200).json({ message: `Welcome, ${decoded.email}` });
   });
+});
+
+// Catch-all route for undefined routes
+app.use((req, res, next) => {
+  res.status(404).json({ message: 'Route not found' });
 });
 
 app.listen(3001, () => {
