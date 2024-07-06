@@ -4,8 +4,9 @@
       { "src": "index.js", "use": "@vercel/node" }
     ],
     "routes": [
-      { "src": "/", "dest": "/index.js" },
-      { "src": "/verify-token", "dest": "/index.js" }
+      { "src": "/login-email", "dest": "/index.js" },
+      { "src": "/verify-token", "dest": "/index.js" },
+      { "src": "/.*", "dest": "/index.js" } 
     ]
   }
   
