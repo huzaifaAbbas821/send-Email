@@ -45,7 +45,7 @@ app.post('/login-email', async (req, res) => {
   }
 
   const token = jwt.sign({ email, username }, secret, { expiresIn: '10m' });
-  const loginLink = `https://send-email-b0pigchcb-huzaifas-projects-4e25ad66.vercel.app/verify-token?token=${token}`;
+  const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
 
   const mailOptions = {
     from: emailUser,
