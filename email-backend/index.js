@@ -10,13 +10,8 @@ const mongoose = require('mongoose');
 
 const app = express();
 
-// Connect to MongoDB
-const mongoose = require('mongoose');
 
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => {
+mongoose.connect(process.env.MONGODB_URI).then(() => {
   console.log('Connected to MongoDB');
 }).catch(err => {
   console.error('Failed to connect to MongoDB:', err);
@@ -96,6 +91,6 @@ app.use((req, res, next) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server is running on port ${process.env.PORT}`);
+app.listen(3001, () => {
+  console.log(`Server is running on port 3001`);
 });
