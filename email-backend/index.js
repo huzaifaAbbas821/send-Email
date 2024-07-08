@@ -6,10 +6,24 @@ const crypto = require('crypto');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const mongoose = require('mongoose');
 
 const app = express();
 
-const secret = process.env.SECRET || crypto.randomBytes(32).toString('base64');
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+
+// Define the Token schema and model
+const tokenSchema = new mongoose.Schema({
+  email: String,
+  userName: String,
+  token: String,
+  createdAt: { type: Date, default: Date.now, expires: '10m' }, // TTL index to expire after 10 minutes
+  used: { type: Boolean, default: false },
+});
+const Token = mongoose.model('Token', tokenSchema);
+
+const secret = crypto.randomBytes(32).toString('base64');
 const emailUser = process.env.EMAIL_USER;
 const emailPassword = process.env.EMAIL_PASSWORD;
 
@@ -20,18 +34,18 @@ const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: emailUser,
-    pass: emailPassword
-  }
+    pass: emailPassword,
+  },
 });
 
 app.post('/login-email', async (req, res) => {
-  const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ message: 'Email is required' });
+  const { email, username } = req.body;
+  if (!email || !username) {
+    return res.status(400).json({ message: 'Email and username are required' });
   }
 
-  const token = jwt.sign({ email }, secret, { expiresIn: '10m' });
-  const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
+  const token = jwt.sign({ email, username }, secret, { expiresIn: '10m' });
+  const loginLink = `https://send-email-vgp4.vercel.app/verify-token?token=${token}`;
 
   const mailOptions = {
     from: emailUser,
@@ -50,23 +64,28 @@ app.post('/login-email', async (req, res) => {
   });
 });
 
-app.get('/verify-token', (req, res) => {
+app.get('/verify-token', async (req, res) => {
   const token = req.query.token;
+  const tokenDoc = await Token.findOne({ token });
 
-  jwt.verify(token, secret, (err, decoded) => {
-    if (err) {
-      return res.status(401).json({ message: 'Invalid or expired token' });
-    }
+  if (!tokenDoc) {
+    return res.status(400).json({ message: 'Invalid or expired token' });
+  }
+  if (tokenDoc.used) {
+    return res.status(400).json({ message: 'Token has already been used' });
+  }
 
-    res.status(200).json({ message: `Welcome, ${decoded.email}` });
-  });
+  tokenDoc.used = true;
+  await tokenDoc.save();
+
+  res.status(200).json({ message: `Welcome, ${tokenDoc.userName}` });
 });
 
-// // Catch-all route for undefined routes
-// app.use((req, res, next) => {
-//   res.status(404).json({ message: 'Route not found' });
-// });
+// Catch-all route for undefined routes
+app.use((req, res, next) => {
+  res.status(404).json({ message: 'Route not found' });
+});
 
-app.listen(3001, () => {
-  console.log('Server is running on port 3001');
+app.listen(process.env.PORT, () => {
+  console.log(`Server is running on port ${process.env.PORT}`);
 });

@@ -2,36 +2,37 @@ import React, { useState } from "react";
 
 function Login() {
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState(""); // State for username
   const [message, setMessage] = useState(""); // State for feedback messages
 
   const sendEmailFnc = async (e) => {
     e.preventDefault();
-    if (!email) {
-      setMessage("Error: Email is required");
+    if (!email || !username) {
+      setMessage("Error: Both email and username are required");
       return;
     }
-  
+
     try {
       const response = await fetch("https://send-email-vgp4.vercel.app/login-email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, username }), // Send both email and username
       });
-  
+
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.message || "Error sending email");
       }
-  
+
       setMessage("Login link sent. Check your email.");
     } catch (error) {
       console.error("Error sending email:", error);
       setMessage("Error sending email. Please try again.");
     }
   };
-  
+
   return (
     <div className="bg-black w-screen h-screen flex justify-center items-center">
       <form className="flex flex-col md:w-[30%] gap-4 p-4" onSubmit={sendEmailFnc}>
@@ -43,6 +44,18 @@ function Login() {
             type="email"
             id="email"
             placeholder="Enter Email"
+            required
+            className="w-full p-2"
+          />
+        </div>
+        <div className="w-full">
+          <label htmlFor="username" className="text-white">Username</label>
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            type="text"
+            id="username"
+            placeholder="Enter Username"
             required
             className="w-full p-2"
           />
