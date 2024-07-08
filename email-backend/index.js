@@ -1,4 +1,6 @@
-// index.js
+
+
+
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -10,31 +12,34 @@ const mongoose = require('mongoose');
 
 const app = express();
 
-
-mongoose.connect(process.env.MONGODB_URI).then(() => {
-  console.log('Connected to MongoDB');
-}).catch(err => {
-  console.error('Failed to connect to MongoDB:', err);
-});
-
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log('Connected to MongoDB');
+  })
+  .catch(err => {
+    console.error('Failed to connect to MongoDB:', err);
+    process.exit(1); // Exit if MongoDB connection fails
+  });
 
 // Define the Token schema and model
 const tokenSchema = new mongoose.Schema({
   email: String,
   userName: String,
   token: String,
-  createdAt: { type: Date, default: Date.now, expires: '10m' }, // TTL index to expire after 10 minutes
+  createdAt: { type: Date, default: Date.now, expires: '10m' }, // TTL index
   used: { type: Boolean, default: false },
 });
 const Token = mongoose.model('Token', tokenSchema);
 
-const secret = crypto.randomBytes(32).toString('base64');
+const secret = process.env.SECRET || crypto.randomBytes(32).toString('base64');
 const emailUser = process.env.EMAIL_USER;
 const emailPassword = process.env.EMAIL_PASSWORD;
 
 app.use(bodyParser.json());
 app.use(cors());
 
+// Configure Nodemailer
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -43,6 +48,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Endpoint to send login email
 app.post('/login-email', async (req, res) => {
   const { email, username } = req.body;
   if (!email || !username) {
@@ -60,37 +66,52 @@ app.post('/login-email', async (req, res) => {
     html: `<p>Click the link to log in: <a href="${loginLink}">${loginLink}</a></p>`,
   };
 
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.log('Error sending email:', error);
-      return res.status(500).json({ message: 'Error sending email' });
-    }
-    res.status(200).json({ message: 'Login link sent' });
-  });
+  try {
+    await transporter.sendMail(mailOptions);
+
+    const newToken = new Token({
+      email,
+      userName: username,
+      token,
+    });
+
+    await newToken.save();
+
+    res.status(200).json({ message: 'Login link sent and user data saved' });
+  } catch (error) {
+    console.error('Error sending email or saving token:', error);
+    res.status(500).json({ message: 'Error sending email or saving token' });
+  }
 });
 
+// Endpoint to verify token
 app.get('/verify-token', async (req, res) => {
   const token = req.query.token;
-  const tokenDoc = await Token.findOne({ token });
+  try {
+    const tokenDoc = await Token.findOne({ token });
 
-  if (!tokenDoc) {
-    return res.status(400).json({ message: 'Invalid or expired token' });
+    if (!tokenDoc) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+    if (tokenDoc.used) {
+      return res.status(400).json({ message: 'Token has already been used' });
+    }
+
+    tokenDoc.used = true;
+    await tokenDoc.save();
+
+    res.status(200).json({ message: `Welcome, ${tokenDoc.userName}` });
+  } catch (error) {
+    console.error('Error verifying token:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
-  if (tokenDoc.used) {
-    return res.status(400).json({ message: 'Token has already been used' });
-  }
-
-  tokenDoc.used = true;
-  await tokenDoc.save();
-
-  res.status(200).json({ message: `Welcome, ${tokenDoc.userName}` });
 });
 
 // Catch-all route for undefined routes
-app.use((req, res, next) => {
+app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
 app.listen(3001, () => {
-  console.log(`Server is running on port 3001`);
+  console.log('Server is running on port 3001');
 });
