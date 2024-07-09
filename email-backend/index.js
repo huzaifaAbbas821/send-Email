@@ -1,96 +1,107 @@
-require("dotenv").config();
-const express = require("express");
-const bodyParser = require("body-parser");
-const crypto = require("crypto");
-const cors = require("cors");
-const jwt = require("jsonwebtoken");
-const nodemailer = require("nodemailer");
-const mongoose = require("mongoose");
+require('dotenv').config();
+const express = require('express');
+const bodyParser = require('body-parser');
+const crypto = require('crypto');
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
+const mongoose = require('mongoose');
 
-// Replace with your actual connection string
-const mongoURI = "mongodb://huzaifaabbas:huzaifaabbas@ac-fsf674z-shard-00-00.lhd6wld.mongodb.net:27017,ac-fsf674z-shard-00-01.lhd6wld.mongodb.net:27017,ac-fsf674z-shard-00-02.lhd6wld.mongodb.net:27017/?ssl=true&replicaSet=atlas-rm2yxh-shard-0&authSource=admin&retryWrites=true&w=majority&appName=Cluster0";
-
-mongoose.connect(mongoURI)
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Connected to MongoDB!'))
-  .catch((err) => console.log("Failed to connect to MongoDB", err));
+  .catch(err => console.error('Failed to connect to MongoDB', err));
 
+// Define the Token schema and model
 const tokenSchema = new mongoose.Schema({
   email: String,
+  userName: String,
   token: String,
-  createdAt: { type: Date, default: Date.now, expires: "10m" }, // TTL index
+  createdAt: { type: Date, default: Date.now, expires: '10m' }, // TTL index
   used: { type: Boolean, default: false },
 });
-
-const Token = mongoose.model("Token", tokenSchema);
-
-const tokenDoc = new Token({
-  email:'huzaifa@gmail.com',
-  token: 'hsagdajsd',
-})
-
-tokenDoc.save();
+const Token = mongoose.model('Token', tokenSchema);
 
 const app = express();
 
-const secret = process.env.SECRET || crypto.randomBytes(32).toString("base64");
+const secret = process.env.SECRET || crypto.randomBytes(32).toString('base64');
 const emailUser = process.env.EMAIL_USER;
 const emailPassword = process.env.EMAIL_PASSWORD;
 
 app.use(bodyParser.json());
 app.use(cors());
 
+// Configure Nodemailer
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  service: 'gmail',
   auth: {
     user: emailUser,
     pass: emailPassword,
   },
 });
 
-app.post("/login-email", async (req, res) => {
-  const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ message: "Email is required" });
+// Endpoint to send login email
+app.post('/login-email', async (req, res) => {
+  const { email, username } = req.body;
+  if (!email || !username) {
+    return res.status(400).json({ message: 'Email and username are required' });
   }
 
+  try {
+    const token = jwt.sign({ email, username }, secret, { expiresIn: '10m' });
+    const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
 
-  const token = jwt.sign({ email }, secret, { expiresIn: "10m" });
-  const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
+    const mailOptions = {
+      from: emailUser,
+      to: email,
+      subject: 'Login Link',
+      text: `Click the link to log in: ${loginLink}`,
+      html: `<p>Click the link to log in: <a href="${loginLink}">${loginLink}</a></p>`,
+    };
 
-  const mailOptions = {
-    from: emailUser,
-    to: email,
-    subject: "Login Link",
-    text: `Click the link to log in: ${loginLink}`,
-    html: `<p>Click the link to log in: <a href="${loginLink}">${loginLink}</a></p>`,
-  };
+    await transporter.sendMail(mailOptions);
 
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.log("Error sending email:", error);
-      return res.status(500).json({ message: "Error sending email" });
-    }
-    res.status(200).json({ message: "Login link sent" });
-  });
+    await Token.findOneAndUpdate(
+      { email, userName: username },
+      { email, userName: username, token, createdAt: Date.now(), used: false },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    res.status(200).json({ message: 'Login link sent and user data saved' });
+  } catch (error) {
+    console.error('Error sending email or saving token:', error);
+    res.status(500).json({ message: 'Error sending email or saving token' });
+  }
 });
 
-app.get("/verify-token", (req, res) => {
+// Endpoint to verify token
+app.get('/verify-token', async (req, res) => {
   const token = req.query.token;
+  try {
+    const tokenDoc = await Token.findOne({ token });
 
-  jwt.verify(token, secret, (err, decoded) => {
-    if (err) {
-      return res.status(401).json({ message: "Invalid or expired token" });
+    if (!tokenDoc) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+    if (tokenDoc.used) {
+      return res.status(400).json({ message: 'Token has already been used' });
     }
 
-    res.status(200).json({ message: `Welcome, ${decoded.email}` });
-  });
+    tokenDoc.used = true;
+    await tokenDoc.save();
+
+    res.status(200).json({ message: `Welcome, ${tokenDoc.userName}` });
+  } catch (error) {
+    console.error('Error verifying token:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
 // Catch-all route for undefined routes
-app.use((req, res, next) => {
-  res.status(404).json({ message: "Route not found" });
+app.use((req, res) => {
+  res.status(404).json({ message: 'Route not found' });
 });
 
 app.listen(3001, () => {
-  console.log("Server is running on port 3001");
+  console.log('Server is running on port 3001');
 });
