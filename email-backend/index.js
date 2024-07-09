@@ -18,13 +18,16 @@ const tokenSchema = new mongoose.Schema({
   userName: String,
   token: String,
   createdAt: { type: Date, default: Date.now, expires: '10m' }, // TTL index
-  used: { type: Boolean, default: false },
+  isUsed: {
+    type: Boolean,
+    default: false
+}
 });
 const Token = mongoose.model('Token', tokenSchema);
 
 const app = express();
 
-const secret = process.env.SECRET || crypto.randomBytes(32).toString('base64');
+const secret = crypto.randomBytes(32).toString('base64');
 const emailUser = process.env.EMAIL_USER;
 const emailPassword = process.env.EMAIL_PASSWORD;
 
@@ -76,7 +79,7 @@ app.post('/login-email', async (req, res) => {
 
 // Endpoint to verify token
 app.get('/verify-token', async (req, res) => {
-  const token = req.query.token;
+  let token = req.query.token;
   try {
     const tokenDoc = await Token.findOne({ token });
 
