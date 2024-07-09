@@ -18,7 +18,7 @@ const tokenSchema = new mongoose.Schema({
   userName: String,
   token: String,
   createdAt: { type: Date, default: Date.now, expires: '10m' }, // TTL index
-  isUsed: Number
+  isUsed: { type: Number, default: 1 }
 });
 const Token = mongoose.model('Token', tokenSchema);
 
@@ -40,6 +40,29 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Middleware to check if the token is valid and not expired
+const checkTokenStatus = async (req, res, next) => {
+  const token = req.query.token;
+
+  try {
+    const tokenDoc = await Token.findOne({ token });
+
+    if (!tokenDoc) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+
+    if (tokenDoc.isUsed !== 1) {
+      return res.status(400).json({ message: 'Token has already been used or expired' });
+    }
+
+    req.tokenDoc = tokenDoc; // Save tokenDoc to request object for later use
+    next(); // Proceed to the next middleware or route handler
+  } catch (error) {
+    console.error('Error checking token status:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 // Endpoint to send login email
 app.post('/login-email', async (req, res) => {
   const { email, username } = req.body;
@@ -49,7 +72,7 @@ app.post('/login-email', async (req, res) => {
 
   try {
     const token = jwt.sign({ email, username }, secret, { expiresIn: '4m' });
-    const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
+    const loginLink = `https://your-frontend-url/verify-token?token=${token}`;
 
     const mailOptions = {
       from: emailUser,
@@ -74,33 +97,10 @@ app.post('/login-email', async (req, res) => {
   }
 });
 
-// Middleware to check if the token is valid and not expired
-const checkTokenStatus = async (req, res, next) => {
-  const token = req.query.token;
-  
-  try {
-    const tokenDoc = await Token.findOne({ token });
-
-    if (!tokenDoc) {
-      return res.status(400).json({ message: 'Invalid or expired token' });
-    }
-
-    if (tokenDoc.isUsed !== 1) {
-      return res.status(400).json({ message: 'Token has already been used or expired' });
-    }
-
-    req.tokenDoc = tokenDoc; // Save tokenDoc to request object for later use
-    next(); // Proceed to the next middleware or route handler
-  } catch (error) {
-    console.error('Error checking token status:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
 // Endpoint to verify token with middleware applied
 app.get('/verify-token', checkTokenStatus, async (req, res) => {
   const token = req.query.token;
-  const { tokenDoc } = req;
+  const  tokenDoc  = await Token.findOne(token);
 
   jwt.verify(token, secret, async (err, decoded) => {
     if (err) {
@@ -108,7 +108,7 @@ app.get('/verify-token', checkTokenStatus, async (req, res) => {
     }
 
     // Update token usage status
-    await tokenDoc.updateOne({ $set: { isUsed: 2 } });
+    await tokenDoc.updateOne({token} ,{ $set: { isUsed: 2 } });
 
     res.status(200).json({ message: `Welcome, ${decoded.username}` });
   });
