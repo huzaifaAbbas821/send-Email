@@ -18,7 +18,7 @@ const tokenSchema = new mongoose.Schema({
   userName: String,
   token: String,
   createdAt: { type: Date, default: Date.now, expires: '10m' }, // TTL index
-  isUsed: Boolean
+  isUsed: Number
 });
 const Token = mongoose.model('Token', tokenSchema);
 
@@ -63,7 +63,7 @@ app.post('/login-email', async (req, res) => {
 
     await Token.findOneAndUpdate(
       { email, userName: username },
-      { email, userName: username, token, createdAt: Date.now(), isUsed: false },
+      { email, userName: username, token, createdAt: Date.now(), isUsed: 1 },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
@@ -83,10 +83,10 @@ app.get('/verify-token', async (req, res) => {
     if (!tokenDoc) {
       return res.status(400).json({ message: 'Invalid or expired token' });
     }
-    if (tokenDoc.used) {
+    if (tokenDoc.isUsed != 1 ) {
       return res.status(400).json({ message: 'Token has already been used' });
     }
-    await Token.updateOne({ token }, { $set: { isUsed: true } });
+    await Token.updateOne({ token }, { $set: { isUsed: 2 } });
 
     jwt.verify(token, secret, async (err, decoded) => {
       if (err) {
