@@ -1,10 +1,8 @@
-// src/VerifyToken.js
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import axios from 'axios';
-import Authenticated from './Authenticated';
 
-const Verify = () => {
+const VerifyToken = () => {
   const [message, setMessage] = useState('');
   const location = useLocation();
 
@@ -18,7 +16,11 @@ const Verify = () => {
           setMessage(response.data.message);
         })
         .catch(error => {
-          setMessage('Invalid or expired token');
+          if (error.response) {
+            setMessage(error.response.data.message);
+          } else {
+            setMessage('An error occurred while verifying the token');
+          }
         });
     } else {
       setMessage('No token provided');
@@ -26,10 +28,12 @@ const Verify = () => {
   }, [location]);
 
   return (
-    <div className='w-screen h-screen bg-black flex justify-center items-center '>
-      <div className='  text-yellow-500 text-center text-4xl'>Well to my website. </div>
+    <div className="w-screen h-screen bg-black flex justify-center items-center">
+      <div className="text-yellow-500 text-center text-4xl">
+        {message || 'Loading...'}
+      </div>
     </div>
   );
 };
 
-export default Verify;
+export default VerifyToken;
