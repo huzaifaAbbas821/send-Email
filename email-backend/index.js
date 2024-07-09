@@ -89,13 +89,12 @@ app.get('/verify-token', async (req, res) => {
     if (tokenDoc.used) {
       return res.status(400).json({ message: 'Token has already been used' });
     }
+    await Token.updateOne({ token }, { $set: { used: true } });
 
     jwt.verify(token, secret, async (err, decoded) => {
       if (err) {
         return res.status(401).json({ message: 'Invalid or expired token' });
       }
-
-      await Token.updateOne({ token }, { $set: { used: true } });
 
       res.status(200).json({ message: `Welcome, ${decoded.username}` });
     });
