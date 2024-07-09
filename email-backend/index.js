@@ -48,7 +48,7 @@ app.post('/login-email', async (req, res) => {
   }
 
   try {
-    const token = jwt.sign({ email, username }, secret, { expiresIn: '10m' });
+    const token = jwt.sign({ email, username }, secret, { expiresIn: '4m' });
     const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
 
     const mailOptions = {
@@ -63,7 +63,7 @@ app.post('/login-email', async (req, res) => {
 
     await Token.findOneAndUpdate(
       { email, userName: username },
-      { email, userName: username, token, createdAt: Date.now(), used: false },
+      { email, userName: username, token, createdAt: Date.now(), isUsed: false },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
@@ -86,7 +86,7 @@ app.get('/verify-token', async (req, res) => {
     if (tokenDoc.used) {
       return res.status(400).json({ message: 'Token has already been used' });
     }
-    await Token.updateOne({ token }, { $set: { used: true } });
+    await Token.updateOne({ token }, { $set: { isUsed: true } });
 
     jwt.verify(token, secret, async (err, decoded) => {
       if (err) {
