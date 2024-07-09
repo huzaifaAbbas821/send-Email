@@ -76,22 +76,26 @@ app.post('/login-email', async (req, res) => {
 
 // Endpoint to verify token
 app.get('/verify-token', async (req, res) => {
-  let token = req.query.token;
+  const token = req.query.token;
+  
   try {
-    const tokenDoc = await Token.findOne({ token });
+    let tokenDoc = await Token.findOne({ token });
 
     if (!tokenDoc) {
       return res.status(400).json({ message: 'Invalid or expired token' });
     }
-    if (tokenDoc.isUsed != 1 ) {
+
+    if (tokenDoc.isUsed !== 1) {
       return res.status(400).json({ message: 'Token has already been used' });
     }
-    await Token.updateOne({ token }, { $set: { isUsed: 2 } });
 
     jwt.verify(token, secret, async (err, decoded) => {
       if (err) {
         return res.status(401).json({ message: 'Invalid or expired token' });
       }
+
+      // Update token usage status
+      await tokenDoc.updateOne({ $set: { isUsed: 2 } });
 
       res.status(200).json({ message: `Welcome, ${decoded.username}` });
     });
