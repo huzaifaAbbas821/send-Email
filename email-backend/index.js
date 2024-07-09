@@ -81,6 +81,8 @@ app.get('/verify-token', async (req, res) => {
   try {
     let tokenDoc = await Token.findOne({ token });
 
+    console.log(tokenDoc);
+
     if (!tokenDoc) {
       return res.status(400).json({ message: 'Invalid or expired token' });
     }
