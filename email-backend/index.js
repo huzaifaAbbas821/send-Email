@@ -75,7 +75,6 @@ app.post('/login-email', async (req, res) => {
 });
 
 // Endpoint to verify token
-// Endpoint to verify token
 app.get('/verify-token', async (req, res) => {
   const token = req.query.token;
   try {
@@ -93,8 +92,7 @@ app.get('/verify-token', async (req, res) => {
         return res.status(401).json({ message: 'Invalid or expired token' });
       }
 
-      tokenDoc.used = true;
-      await tokenDoc.save();
+      await Token.updateOne({ token }, { $set: { used: true } });
 
       res.status(200).json({ message: `Welcome, ${decoded.username}` });
     });
