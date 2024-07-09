@@ -72,7 +72,7 @@ app.post('/login-email', async (req, res) => {
 
   try {
     const token = jwt.sign({ email, username }, secret, { expiresIn: '4m' });
-    const loginLink = `https://your-frontend-url/verify-token?token=${token}`;
+    const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
 
     const mailOptions = {
       from: emailUser,
@@ -122,3 +122,4 @@ app.use((req, res) => {
 app.listen(3001, () => {
   console.log('Server is running on port 3001');
 });
+
