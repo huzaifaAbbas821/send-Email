@@ -75,6 +75,7 @@ app.post('/login-email', async (req, res) => {
 });
 
 // Endpoint to verify token
+// Endpoint to verify token
 app.get('/verify-token', async (req, res) => {
   const token = req.query.token;
   try {
@@ -87,10 +88,16 @@ app.get('/verify-token', async (req, res) => {
       return res.status(400).json({ message: 'Token has already been used' });
     }
 
-    tokenDoc.used = true;
-    await tokenDoc.save();
+    jwt.verify(token, secret, async (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ message: 'Invalid or expired token' });
+      }
 
-    res.status(200).json({ message: `Welcome, ${tokenDoc.userName}` });
+      tokenDoc.used = true;
+      await tokenDoc.save();
+
+      res.status(200).json({ message: `Welcome, ${decoded.username}` });
+    });
   } catch (error) {
     console.error('Error verifying token:', error);
     res.status(500).json({ message: 'Internal server error' });
