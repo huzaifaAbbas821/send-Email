@@ -18,10 +18,7 @@ const tokenSchema = new mongoose.Schema({
   userName: String,
   token: String,
   createdAt: { type: Date, default: Date.now, expires: '10m' }, // TTL index
-  isUsed: {
-    type: Boolean,
-    default: false
-}
+  isUsed: Boolean
 });
 const Token = mongoose.model('Token', tokenSchema);
 
