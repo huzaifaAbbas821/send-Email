@@ -75,37 +75,37 @@ app.post('/login-email', async (req, res) => {
 });
 
 // Endpoint to verify token
-app.get('/verify-token', async (req, res) => {
-  const token = req.query.token;
+// app.get('/verify-token', async (req, res) => {
+//   const token = req.query.token;
   
-  try {
-    let tokenDoc = await Token.findOne({ token });
+//   try {
+//     let tokenDoc = await Token.findOne({ token });
 
-    console.log(tokenDoc);
+//     console.log(tokenDoc);
 
-    if (!tokenDoc) {
-      return res.status(400).json({ message: 'Invalid or expired token' });
-    }
+//     if (!tokenDoc) {
+//       return res.status(400).json({ message: 'Invalid or expired token' });
+//     }
 
-    if (tokenDoc.isUsed !== 1) {
-      return res.status(400).json({ message: 'Token has already been used' });
-    }
+//     if (tokenDoc.isUsed !== 1) {
+//       return res.status(400).json({ message: 'Token has already been used' });
+//     }
 
-    jwt.verify(token, secret, async (err, decoded) => {
-      if (err) {
-        return res.status(401).json({ message: 'Invalid or expired token' });
-      }
+//     jwt.verify(token, secret, async (err, decoded) => {
+//       if (err) {
+//         return res.status(401).json({ message: 'Invalid or expired token' });
+//       }
 
-      // Update token usage status
-      await tokenDoc.updateOne({ $set: { isUsed: 2 } });
+//       // Update token usage status
+//       await tokenDoc.updateOne({ $set: { isUsed: 2 } });
 
-      res.status(200).json({ message: `Welcome, ${decoded.username}` });
-    });
-  } catch (error) {
-    console.error('Error verifying token:', error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
+//       res.status(200).json({ message: `Welcome, ${decoded.username}` });
+//     });
+//   } catch (error) {
+//     console.error('Error verifying token:', error);
+//     res.status(500).json({ message: 'Internal server error' });
+//   }
+// });
 
 // Catch-all route for undefined routes
 app.use((req, res) => {
