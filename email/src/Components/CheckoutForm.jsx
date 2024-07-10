@@ -6,12 +6,12 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import { useHistory } from "react-router-dom"; // Import useHistory
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 const CheckoutForm = () => {
   const stripe = useStripe();
   const elements = useElements();
-  const history = useHistory(); // Initialize useHistory
+  const navigate = useNavigate(); // Initialize useNavigate
   const [nameOnCard, setNameOnCard] = useState("");
   const [coupon, setCoupon] = useState("");
   const [paymentProcessing, setPaymentProcessing] = useState(false);
@@ -70,7 +70,7 @@ const CheckoutForm = () => {
         setError(error.message);
       } else if (paymentIntent.status === "succeeded") {
         alert("Payment succeeded!");
-        history.push("/success"); // Redirect to the success page
+        navigate("/success"); // Redirect to the success page
       }
     } catch (err) {
       setError("Payment failed. Please try again.");
