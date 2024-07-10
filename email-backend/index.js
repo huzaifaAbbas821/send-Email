@@ -98,9 +98,9 @@ app.post('/login-email', async (req, res) => {
 });
 
 // Endpoint to verify token with middleware applied
-app.get('/verify-token?token=${token}', checkTokenStatus, async (req, res) => {
-  const token = req.params.token;
-  const  tokenDoc  = await Token.findOne(token);
+app.get('/verify-token', checkTokenStatus, async (req, res) => {
+  const token = req.query.token;
+  const tokenDoc = req.tokenDoc;
 
   jwt.verify(token, secret, async (err, decoded) => {
     if (err) {
@@ -108,8 +108,7 @@ app.get('/verify-token?token=${token}', checkTokenStatus, async (req, res) => {
     }
 
     // Update token usage status
-    await tokenDoc.updateOne({token} ,{ $set: { isUsed: 2 } });
-    console.log(tokenDoc.isUsed);
+    await tokenDoc.updateOne({ $set: { isUsed: 2 } });
 
     res.status(200).json({ message: `Welcome, ${decoded.username}` });
   });
@@ -123,4 +122,3 @@ app.use((req, res) => {
 app.listen(3001, () => {
   console.log('Server is running on port 3001');
 });
-

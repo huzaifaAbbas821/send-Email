@@ -11,7 +11,7 @@ const VerifyToken = () => {
     const token = queryParams.get('token');
 
     if (token) {
-      axios.get(`https://send-email-murex.vercel.app/verify-token?token=${token}`)
+      axios.get(`https://send-email-vgp4.vercel.app/verify-token?token=${token}`)
         .then(response => {
           setMessage(response.data.message);
         })
@@ -30,7 +30,7 @@ const VerifyToken = () => {
   return (
     <div className="w-screen h-screen bg-black flex justify-center items-center">
       <div className="text-yellow-500 text-center text-4xl">
-        {message || 'Loading...'}
+        {message}
       </div>
     </div>
   );
