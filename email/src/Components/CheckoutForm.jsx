@@ -70,7 +70,7 @@ const CheckoutForm = () => {
         setError(error.message);
       } else if (paymentIntent.status === "succeeded") {
         alert("Payment succeeded!");
-        navigate("/success"); // Redirect to the success page
+        navigate("/home"); // Redirect to the success page
       }
     } catch (err) {
       setError("Payment failed. Please try again.");

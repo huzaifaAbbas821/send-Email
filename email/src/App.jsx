@@ -17,6 +17,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './Components/Login';
 import Verify from './Components/Verify';
+import Home from './Components/Home';
 
 const App = () => {
   return (
@@ -24,6 +25,7 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/verify-token" element={<Verify />} />
+        <Route path="/home" element={<Home />} />
       </Routes>
     </Router>
   );
