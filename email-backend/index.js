@@ -15,7 +15,6 @@ mongoose.connect(process.env.MONGODB_URI)
 // Define the Token schema and model
 const tokenSchema = new mongoose.Schema({
   email: String,
-  userName: String,
   token: String,
   createdAt: { type: Date, default: Date.now, expires: '10m' }, // TTL index
   isUsed: { type: Number, default: 1 }
@@ -65,13 +64,13 @@ const checkTokenStatus = async (req, res, next) => {
 
 // Endpoint to send login email
 app.post('/login-email', async (req, res) => {
-  const { email, username } = req.body;
-  if (!email || !username) {
+  const { email} = req.body;
+  if (!email ) {
     return res.status(400).json({ message: 'Email and username are required' });
   }
 
   try {
-    const token = jwt.sign({ email, username }, secret, { expiresIn: '4m' });
+    const token = jwt.sign({ email }, secret, { expiresIn: '4m' });
     const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
 
     const mailOptions = {
@@ -85,8 +84,8 @@ app.post('/login-email', async (req, res) => {
     await transporter.sendMail(mailOptions);
 
     await Token.findOneAndUpdate(
-      { email, userName: username },
-      { email, userName: username, token, createdAt: Date.now(), isUsed: 1 },
+      { email},
+      { email, token, createdAt: Date.now(), isUsed: 1 },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
@@ -110,7 +109,7 @@ app.get('/verify-token', checkTokenStatus, async (req, res) => {
     // Update token usage status
     await tokenDoc.updateOne({ $set: { isUsed: 2 } });
 
-    res.status(200).json({ message: `Welcome, ${decoded.username}` });
+    res.status(200).json({ message: `Welcome, ${decoded.username}`, handle: true });
   });
 });
 

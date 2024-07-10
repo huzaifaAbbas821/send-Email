@@ -2,12 +2,11 @@ import React, { useState } from "react";
 
 function Login() {
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
   const [message, setMessage] = useState(""); // State for feedback messages
 
   const sendEmailFnc = async (e) => {
     e.preventDefault();
-    if (!email || !username) {
+    if (!email) {
       setMessage("Error: Email and Username are required");
       return;
     }
@@ -18,7 +17,7 @@ function Login() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, username }),
+        body: JSON.stringify({ email}),
       });
 
       const data = await response.json();
@@ -44,18 +43,6 @@ function Login() {
             type="email"
             id="email"
             placeholder="Enter Email"
-            required
-            className="w-full p-2"
-          />
-        </div>
-        <div className="w-full">
-          <label htmlFor="username" className="text-white">Username</label>
-          <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            type="text"
-            id="username"
-            placeholder="Enter Username"
             required
             className="w-full p-2"
           />

@@ -30,7 +30,7 @@ const VerifyToken = () => {
   return (
     <div className="w-screen h-screen bg-black flex justify-center items-center">
       <div className="text-yellow-500 text-center text-4xl">
-        {message}
+        {message} 
       </div>
     </div>
   );
