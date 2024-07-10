@@ -8,7 +8,7 @@ const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('Connected to MongoDB!'))
   .catch(err => console.error('Failed to connect to MongoDB', err));
 
@@ -98,8 +98,8 @@ app.post('/login-email', async (req, res) => {
 });
 
 // Endpoint to verify token with middleware applied
-app.get('/verify-token', checkTokenStatus, async (req, res) => {
-  const token = req.query.token;
+app.get('/verify-token?token=${token}', checkTokenStatus, async (req, res) => {
+  const token = req.params.token;
   const  tokenDoc  = await Token.findOne(token);
 
   jwt.verify(token, secret, async (err, decoded) => {
@@ -109,6 +109,7 @@ app.get('/verify-token', checkTokenStatus, async (req, res) => {
 
     // Update token usage status
     await tokenDoc.updateOne({token} ,{ $set: { isUsed: 2 } });
+    console.log(tokenDoc.isUsed);
 
     res.status(200).json({ message: `Welcome, ${decoded.username}` });
   });
