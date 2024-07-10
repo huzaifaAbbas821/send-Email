@@ -7,7 +7,7 @@ import bg from "../assets/bg-image.jpg";
 const stripePromise = loadStripe('pk_test_51NYU27DHq3QzD7GbaWIc7E7RSzoa3QCStBesHyU2IykhMKgBHjR9UK7XTMJcshAKC7bDEtVTuxR6V8ENTC6ERaek00XAIUJvIv');
 
 
-function Payment() {
+function PaymentComponent() {
     return (
         <Elements stripe={stripePromise}>
       <div
@@ -31,4 +31,4 @@ function Payment() {
     )
 }
 
-export default Payment
+export default PaymentComponent

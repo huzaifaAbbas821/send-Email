@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
-import Payment from "./Payment";
-import {useNavigate} from "react-router-dom"
+import PaymentComponent from "./Payment";
 
 const VerifyToken = () => {
   const [message, setMessage] = useState("");
   const [handle, setHandle] = useState(false);
-  const [Payment, setPayment] = useState(false);
+  const [payment, setPayment] = useState(false);
   const navigate = useNavigate();
-
   const location = useLocation();
 
   useEffect(() => {
@@ -42,12 +40,17 @@ const VerifyToken = () => {
     console.log("Handle State:", handle);
   }, [handle]);
 
-  if (handle) {
-    if (Payment) {
-        navigate('/home'); 
+  useEffect(() => {
+    if (handle && payment) {
+      navigate('/home');
     }
-    else
-    return <Payment/>
+  }, [handle, payment, navigate]);
+
+  if (handle) {
+    if (!payment) {
+      return <PaymentComponent />;
+    }
+    return null;
   } else {
     return (
       <div className="w-screen h-screen bg-black flex justify-center items-center">
