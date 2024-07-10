@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const Stripe = require('stripe');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const cors = require('cors');
@@ -7,6 +8,7 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
 
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('Connected to MongoDB!'))
@@ -112,6 +114,35 @@ app.get('/verify-token', checkTokenStatus, async (req, res) => {
     res.status(200).json({ message: `Working`, handle: true });
   });
 });
+
+
+// stripe
+app.post('/create-payment-intent', async (req, res) => {
+  const { amount } = req.body;
+
+  if (amount) {
+    console.log(amount);
+  } else {
+    console.log('Amount is missing');
+  }
+
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency: 'usd',
+      payment_method_types: ['card'],
+    });
+
+    res.status(200).send({
+      clientSecret: paymentIntent.client_secret,
+    });
+  } catch (error) {
+    res.status(500).send({
+      error: error.message,
+    });
+  }
+});
+
 
 // Catch-all route for undefined routes
 app.use((req, res) => {
