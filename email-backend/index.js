@@ -9,6 +9,7 @@ const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('Connected to MongoDB!'))
@@ -19,8 +20,8 @@ const tokenSchema = new mongoose.Schema({
   email: String,
   token: String,
   createdAt: { type: Date, default: Date.now, expires: '10m' }, // TTL index
-  Payment: { type: Boolean , default : false },
-  isUsed: { type: Number, default: 1 }
+  payment: { type: Boolean, default: false },
+  isUsed: { type: Number, default: 1 },
 });
 const Token = mongoose.model('Token', tokenSchema);
 
@@ -67,9 +68,9 @@ const checkTokenStatus = async (req, res, next) => {
 
 // Endpoint to send login email
 app.post('/login-email', async (req, res) => {
-  const { email} = req.body;
-  if (!email ) {
-    return res.status(400).json({ message: 'Email and username are required' });
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required' });
   }
 
   try {
@@ -87,7 +88,7 @@ app.post('/login-email', async (req, res) => {
     await transporter.sendMail(mailOptions);
 
     await Token.findOneAndUpdate(
-      { email},
+      { email },
       { email, token, createdAt: Date.now(), isUsed: 1 },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
@@ -99,7 +100,7 @@ app.post('/login-email', async (req, res) => {
   }
 });
 
-
+// Endpoint to update payment status
 app.post('/update-payment-status', async (req, res) => {
   const { token } = req.body;
 
@@ -118,17 +119,10 @@ app.post('/update-payment-status', async (req, res) => {
   }
 });
 
-
-
-
-
-
 // Endpoint to verify token with middleware applied
 app.get('/verify-token', checkTokenStatus, async (req, res) => {
   const token = req.query.token;
   const tokenDoc = req.tokenDoc;
-
-
 
   jwt.verify(token, secret, async (err, decoded) => {
     if (err) {
@@ -138,19 +132,16 @@ app.get('/verify-token', checkTokenStatus, async (req, res) => {
     // Update token usage status
     await tokenDoc.updateOne({ $set: { isUsed: 2 } });
 
-    res.status(200).json({ message: `Working`, handle: true, Payment : tokenDoc.Payment });
+    res.status(200).json({ message: 'Working', handle: true, Payment: tokenDoc.payment });
   });
 });
 
-
-// stripe
+// Stripe endpoint to create payment intent
 app.post('/create-payment-intent', async (req, res) => {
   const { amount } = req.body;
 
-  if (amount) {
-    console.log(amount);
-  } else {
-    console.log('Amount is missing');
+  if (!amount) {
+    return res.status(400).json({ message: 'Amount is required' });
   }
 
   try {
@@ -170,12 +161,12 @@ app.post('/create-payment-intent', async (req, res) => {
   }
 });
 
-
 // Catch-all route for undefined routes
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-app.listen(3001, () => {
-  console.log('Server is running on port 3001');
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
