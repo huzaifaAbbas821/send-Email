@@ -109,7 +109,7 @@ app.get('/verify-token', checkTokenStatus, async (req, res) => {
     // Update token usage status
     await tokenDoc.updateOne({ $set: { isUsed: 2 } });
 
-    res.status(200).json({ message: `Welcome, ${decoded.username}`, handle: true });
+    res.status(200).json({ message: `Working`, handle: true });
   });
 });
 
