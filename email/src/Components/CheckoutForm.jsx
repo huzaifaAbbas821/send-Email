@@ -81,7 +81,7 @@ const CheckoutForm = () => {
           body: JSON.stringify({ token }),
         });
 
-        navigate("/success"); // Redirect to the success page
+        navigate("/home"); // Redirect to the success page
       }
     } catch (err) {
       setError("Payment failed. Please try again.");
