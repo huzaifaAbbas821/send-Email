@@ -6,12 +6,12 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom";
 
 const CheckoutForm = () => {
   const stripe = useStripe();
   const elements = useElements();
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
   const [nameOnCard, setNameOnCard] = useState("");
   const [coupon, setCoupon] = useState("");
   const [paymentProcessing, setPaymentProcessing] = useState(false);
@@ -70,7 +70,18 @@ const CheckoutForm = () => {
         setError(error.message);
       } else if (paymentIntent.status === "succeeded") {
         alert("Payment succeeded!");
-        navigate("/home"); // Redirect to the success page
+
+        // Send a POST request to update the payment status
+        const token = new URLSearchParams(window.location.search).get('token');
+        await fetch("https://send-email-vgp4.vercel.app/update-payment-status", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ token }),
+        });
+
+        navigate("/success"); // Redirect to the success page
       }
     } catch (err) {
       setError("Payment failed. Please try again.");

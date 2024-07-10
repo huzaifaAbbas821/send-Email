@@ -19,6 +19,7 @@ const tokenSchema = new mongoose.Schema({
   email: String,
   token: String,
   createdAt: { type: Date, default: Date.now, expires: '10m' }, // TTL index
+  Payment: { type: Boolean , default : false },
   isUsed: { type: Number, default: 1 }
 });
 const Token = mongoose.model('Token', tokenSchema);
@@ -98,10 +99,36 @@ app.post('/login-email', async (req, res) => {
   }
 });
 
+
+app.post('/update-payment-status', async (req, res) => {
+  const { token } = req.body;
+
+  try {
+    const tokenDoc = await Token.findOne({ token });
+    if (!tokenDoc) {
+      return res.status(404).json({ message: 'Token not found' });
+    }
+
+    tokenDoc.payment = true;
+    await tokenDoc.save();
+
+    res.status(200).json({ message: 'Payment status updated successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'An error occurred', error: err.message });
+  }
+});
+
+
+
+
+
+
 // Endpoint to verify token with middleware applied
 app.get('/verify-token', checkTokenStatus, async (req, res) => {
   const token = req.query.token;
   const tokenDoc = req.tokenDoc;
+
+
 
   jwt.verify(token, secret, async (err, decoded) => {
     if (err) {
@@ -111,7 +138,7 @@ app.get('/verify-token', checkTokenStatus, async (req, res) => {
     // Update token usage status
     await tokenDoc.updateOne({ $set: { isUsed: 2 } });
 
-    res.status(200).json({ message: `Working`, handle: true });
+    res.status(200).json({ message: `Working`, handle: true, Payment : tokenDoc.Payment });
   });
 });
 
