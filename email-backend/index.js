@@ -11,13 +11,13 @@ const Fingerprint = require("express-fingerprint");
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Connect to MongoDB
+
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => console.log("Connected to MongoDB!"))
   .catch((err) => console.error("Failed to connect to MongoDB", err));
 
-// Define the Token schema and model
+
 const tokenSchema = new mongoose.Schema({
   email: String,
   token: String,
@@ -40,7 +40,7 @@ app.use(bodyParser.json());
 app.use(cors());
 app.use(Fingerprint());
 
-// Configure Nodemailer
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -49,7 +49,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Middleware to check if the token is valid and not expired
+
 const checkTokenStatus = async (req, res, next) => {
   const token = req.query.token;
   const clientIpAddress = req.ip;
@@ -88,7 +88,7 @@ const checkTokenStatus = async (req, res, next) => {
   }
 };
 
-// Endpoint to send login email
+
 app.post("/login-email", async (req, res) => {
   const { email } = req.body;
   const clientIpAddress = req.ip;
@@ -111,7 +111,7 @@ app.post("/login-email", async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
-    const userAgent = req.headers['user-agent'];
+    const userAgent = req.headers["user-agent"];
     const fingerprint = req.fingerprint.hash;
 
     await Token.findOneAndUpdate(
@@ -142,27 +142,33 @@ app.post("/update-payment-status", async (req, res) => {
 
     res.status(200).json({ message: "Payment status updated successfully" });
   } catch (err) {
+    console.error("Error updating payment status:", err);
     res.status(500).json({ message: "An error occurred", error: err.message });
   }
 });
 
-// Endpoint to verify token with middleware applied
+
 app.get("/verify-token", checkTokenStatus, async (req, res) => {
   const token = req.query.token;
   const tokenDoc = req.tokenDoc;
 
   jwt.verify(token, secret, async (err, decoded) => {
     if (err) {
+      console.error("Error verifying token:", err);
       return res.status(401).json({ message: "Invalid or expired token" });
     }
 
-    await tokenDoc.updateOne({ $set: { isUsed: 2 } });
-
-    res.status(200).json({ message: "Working", handle: true, Payment: tokenDoc.payment });
+    try {
+      await tokenDoc.updateOne({ $set: { isUsed: 2 } });
+      res.status(200).json({ message: "Working", handle: true, Payment: tokenDoc.payment });
+    } catch (updateError) {
+      console.error("Error updating token status:", updateError);
+      res.status(500).json({ message: "Internal server error" });
+    }
   });
 });
 
-// Stripe endpoint to create payment intent
+
 app.post("/create-payment-intent", async (req, res) => {
   const { amount } = req.body;
 
@@ -181,18 +187,21 @@ app.post("/create-payment-intent", async (req, res) => {
       clientSecret: paymentIntent.client_secret,
     });
   } catch (error) {
+    console.error("Error creating payment intent:", error);
     res.status(500).send({
       error: error.message,
     });
   }
 });
 
-// Catch-all route for undefined routes
-app.use((req, res) => {
+
+app.use('/', (req, res) => {
+  console.error(`404 - Not Found: ${req.originalUrl}`);
   res.status(404).json({ message: "Route not found" });
 });
 
-const PORT = process.env.PORT || 3001;
+
+const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
