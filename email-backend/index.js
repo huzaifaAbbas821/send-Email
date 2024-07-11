@@ -8,7 +8,6 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const mongoose = require("mongoose");
 const Fingerprint = require("express-fingerprint");
-const { findSourceMap } = require("module");
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -63,12 +62,11 @@ const checkTokenStatus = async (req, res, next) => {
     }
 
     if (tokenDoc.isUsed !== 1) {
-      return res
-        .status(400)
-        .json({ message: "Token has already been used or expired" });
+      return res.status(400).json({ message: "Token has already been used or expired" });
     }
-    const userAgent = req.headers["user-agent"]; // Get the user agent string from the request headers
-    const isMobile = /mobile/i.test(userAgent); // Check if the user agent string contains the word "mobile"
+
+    const userAgent = req.headers["user-agent"];
+    const isMobile = /mobile/i.test(userAgent);
     if (!isMobile) {
       return res.status(400).json({ message: "Only access this link through mobile phone." });
     }
@@ -82,8 +80,8 @@ const checkTokenStatus = async (req, res, next) => {
       return res.status(400).json({ message: 'Access restricted to the original IP address only' });
     }
 
-    req.tokenDoc = tokenDoc; // Save tokenDoc to request object for later use
-    next(); // Proceed to the next middleware or route handler
+    req.tokenDoc = tokenDoc;
+    next();
   } catch (error) {
     console.error("Error checking token status:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -94,6 +92,7 @@ const checkTokenStatus = async (req, res, next) => {
 app.post("/login-email", async (req, res) => {
   const { email } = req.body;
   const clientIpAddress = req.ip;
+
   if (!email) {
     return res.status(400).json({ message: "Email is required" });
   }
@@ -117,7 +116,7 @@ app.post("/login-email", async (req, res) => {
 
     await Token.findOneAndUpdate(
       { email },
-      { email, token, createdAt: Date.now(), isUsed: 1 , userAgent , fingerprint, ipAddress: clientIpAddress },
+      { email, token, createdAt: Date.now(), isUsed: 1, userAgent, fingerprint, ipAddress: clientIpAddress },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
@@ -157,12 +156,9 @@ app.get("/verify-token", checkTokenStatus, async (req, res) => {
       return res.status(401).json({ message: "Invalid or expired token" });
     }
 
-    // Update token usage status
     await tokenDoc.updateOne({ $set: { isUsed: 2 } });
 
-    res
-      .status(200)
-      .json({ message: "Working", handle: true, Payment: tokenDoc.payment });
+    res.status(200).json({ message: "Working", handle: true, Payment: tokenDoc.payment });
   });
 });
 
