@@ -6,6 +6,9 @@
     "routes": [
       { "src": "/login-email", "dest": "/index.js" },
       { "src": "/verify-token", "dest": "/index.js" },
+      { "src": "/verify-token", "dest": "/index.js" },
+      { "src": "/update-payment-status", "dest": "/index.js" },
+      { "src": "/create-payment-intent", "dest": "/index.js" },
       { "src": "/.*", "dest": "/index.js" } 
     ]
   }
