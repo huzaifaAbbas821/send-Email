@@ -7,6 +7,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const mongoose = require('mongoose');
+const Fingerprint = require("express-fingerprint");
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -22,6 +23,9 @@ const tokenSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now, expires: '10m' }, // TTL index
   payment: { type: Boolean, default: false },
   isUsed: { type: Number, default: 1 },
+  userAgent: String,
+  fingerprint: String,
+  ipAddress: String,
 });
 const Token = mongoose.model('Token', tokenSchema);
 
@@ -33,6 +37,7 @@ const emailPassword = process.env.EMAIL_PASSWORD;
 
 app.use(bodyParser.json());
 app.use(cors());
+app.use(Fingerprint());
 
 // Configure Nodemailer
 const transporter = nodemailer.createTransport({
@@ -46,6 +51,7 @@ const transporter = nodemailer.createTransport({
 // Middleware to check if the token is valid and not expired
 const checkTokenStatus = async (req, res, next) => {
   const token = req.query.token;
+  const clientIpAddress = req.ip;
 
   try {
     const tokenDoc = await Token.findOne({ token });
@@ -56,6 +62,15 @@ const checkTokenStatus = async (req, res, next) => {
 
     if (tokenDoc.isUsed !== 1) {
       return res.status(400).json({ message: 'Token has already been used or expired' });
+    }
+
+    const fingerprint = req.fingerprint.hash;
+    if (tokenDoc.fingerprint !== fingerprint) {
+      return res.status(400).json({ message: 'Access restricted to the original browser only' });
+    }
+
+    if (tokenDoc.ipAddress !== clientIpAddress) {
+      return res.status(400).json({ message: 'Access restricted to the original IP address only' });
     }
 
     req.tokenDoc = tokenDoc; // Save tokenDoc to request object for later use
@@ -69,6 +84,8 @@ const checkTokenStatus = async (req, res, next) => {
 // Endpoint to send login email
 app.post('/login-email', async (req, res) => {
   const { email } = req.body;
+  const clientIpAddress = req.ip;
+
   if (!email) {
     return res.status(400).json({ message: 'Email is required' });
   }
@@ -87,12 +104,15 @@ app.post('/login-email', async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
+     const userAgent = req.headers["user-agent"];
+    const fingerprint = req.fingerprint.hash;
+
     await Token.findOneAndUpdate(
       { email },
-      { email, token, createdAt: Date.now(), isUsed: 1 },
+      { email, token, createdAt: Date.now(), isUsed: 1, userAgent, fingerprint, ipAddress: clientIpAddress },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
-
+    
     res.status(200).json({ message: 'Login link sent and user data saved' });
   } catch (error) {
     console.error('Error sending email or saving token:', error);
