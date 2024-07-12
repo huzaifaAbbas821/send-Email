@@ -72,15 +72,9 @@ const checkTokenStatus = async (req, res, next) => {
       return res.status(400).json({ message: "Token has already been used or expired" });
     }
 
-    const userAgent = req.headers["user-agent"];
-    const isMobile = /mobile/i.test(userAgent);
-    if (!isMobile) {
-      return res.status(400).json({ message: "Only access this link through mobile phone." });
-    }
-
     const fingerprint = generateFingerprint(req);
     if (tokenDoc.fingerprint !== fingerprint) {
-      return res.status(400).json({ message: 'Access restricted to the original browser only' });
+      return res.status(400).json({ message: 'Access restricted to the original device and browser only' });
     }
 
     if (tokenDoc.ipAddress !== clientIpAddress) {
