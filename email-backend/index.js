@@ -21,14 +21,16 @@ mongoose
 const tokenSchema = new mongoose.Schema({
   email: String,
   token: String,
-  createdAt: { type: Date, default: Date.now, expires: "10m" }, // TTL index
+  createdAt: { type: Date, default: Date.now, expires: "10m" },
   payment: { type: Boolean, default: false },
   isUsed: { type: Number, default: 1 },
   userAgent: String,
   fingerprint: String,
   ipAddress: String,
   deviceId: String,
+  sessionId: String, // Add this line
 });
+
 const Token = mongoose.model("Token", tokenSchema);
 
 const app = express();
@@ -68,6 +70,43 @@ const generateFingerprint = (req) => {
 };
 
 // Middleware to check if the token is valid and not expired
+// const checkTokenStatus = async (req, res, next) => {
+//   const token = req.query.token;
+//   const clientIpAddress = req.ip;
+
+//   try {
+//     const tokenDoc = await Token.findOne({ token });
+
+//     if (!tokenDoc) {
+//       return res.status(400).json({ message: "Invalid or expired token" });
+//     }
+
+//     if (tokenDoc.isUsed !== 1) {
+//       return res.status(400).json({ message: "Token has already been used or expired" });
+//     }
+
+//     const fingerprint = generateFingerprint(req);
+//     if (tokenDoc.fingerprint !== fingerprint) {
+//       return res.status(400).json({ message: "Access restricted to the original device and browser only" });
+//     }
+
+//     if (tokenDoc.ipAddress !== clientIpAddress) {
+//       return res.status(400).json({ message: "Access restricted to the original IP address only" });
+//     }
+
+//     const decoded = jwt.verify(token, secret);
+//     if (tokenDoc.deviceId !== decoded.deviceId) {
+//       return res.status(400).json({ message: "Access restricted to the original device only" });
+//     }
+
+//     req.tokenDoc = tokenDoc;
+//     next();
+//   } catch (error) {
+//     console.error("Error checking token status:", error);
+//     res.status(500).json({ message: "Internal server error" });
+//   }
+// };
+
 const checkTokenStatus = async (req, res, next) => {
   const token = req.query.token;
   const clientIpAddress = req.ip;
@@ -93,8 +132,8 @@ const checkTokenStatus = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, secret);
-    if (tokenDoc.deviceId !== decoded.deviceId) {
-      return res.status(400).json({ message: "Access restricted to the original device only" });
+    if (tokenDoc.deviceId !== decoded.deviceId || tokenDoc.sessionId !== decoded.sessionId) {
+      return res.status(400).json({ message: "Access restricted to the original device and session only" });
     }
 
     req.tokenDoc = tokenDoc;
@@ -104,6 +143,7 @@ const checkTokenStatus = async (req, res, next) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 // Endpoint to send login email
 // app.post("/login-email", async (req, res) => {
@@ -154,11 +194,14 @@ app.post("/login-email", async (req, res) => {
   }
 
   try {
-    // Invalidate any previous tokens for this email
-    await Token.updateMany({ email, isUsed: 1 }, { $set: { isUsed: 2 } });
+    // Generate a new session ID
+    const sessionId = crypto.randomBytes(16).toString("hex");
 
-    const token = jwt.sign({ email, deviceId }, secret, { expiresIn: "4m" });
-    const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
+    // Invalidate any previous tokens for this email
+    await Token.updateMany({ email, isUsed: 1 }, { isUsed: 2 });
+
+    const token = jwt.sign({ email, deviceId, sessionId }, secret, { expiresIn: "4m" });
+    const loginLink = `https://your-frontend-url/verify-token?token=${token}`;
 
     const mailOptions = {
       from: emailUser,
@@ -174,7 +217,7 @@ app.post("/login-email", async (req, res) => {
 
     await Token.findOneAndUpdate(
       { email },
-      { email, token, createdAt: Date.now(), isUsed: 1, userAgent: req.headers["user-agent"], fingerprint, ipAddress: clientIpAddress, deviceId },
+      { email, token, createdAt: Date.now(), isUsed: 1, userAgent: req.headers["user-agent"], fingerprint, ipAddress: clientIpAddress, deviceId, sessionId },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
@@ -184,6 +227,7 @@ app.post("/login-email", async (req, res) => {
     res.status(500).json({ message: "Error sending email or saving token" });
   }
 });
+
 
 
 // Endpoint to update payment status
