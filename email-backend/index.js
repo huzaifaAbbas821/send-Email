@@ -27,7 +27,7 @@ const tokenSchema = new mongoose.Schema({
   userAgent: String,
   fingerprint: String,
   ipAddress: String,
-  deviceId:String,
+  deviceId: String,
 });
 const Token = mongoose.model("Token", tokenSchema);
 
@@ -53,9 +53,9 @@ const transporter = nodemailer.createTransport({
 const generateFingerprint = (req) => {
   const parser = new UAParser();
   const uaResult = parser.setUA(req.headers["user-agent"]).getResult();
-  const deviceModel  = uaResult.device.model;
-  const deviceType  = uaResult.device.type;
-  const deviceVendor  = uaResult.device.vendor;
+  const deviceModel  = uaResult.device.model || 'unknown';
+  const deviceType  = uaResult.device.type || 'unknown';
+  const deviceVendor  = uaResult.device.vendor || 'unknown';
 
   const fingerprintData = `${uaResult.browser.name}-${uaResult.browser.version}-${uaResult.os.name}-${uaResult.os.version}-${deviceModel}-${deviceType}-${deviceVendor}-${req.ip}`;
   return crypto.createHash('sha256').update(fingerprintData).digest('hex');
@@ -85,6 +85,7 @@ const checkTokenStatus = async (req, res, next) => {
     if (tokenDoc.ipAddress !== clientIpAddress) {
       return res.status(400).json({ message: 'Access restricted to the original IP address only' });
     }
+
     const decoded = jwt.verify(token, secret);
     if (tokenDoc.deviceId !== decoded.deviceId) {
       return res.status(400).json({ message: 'Access restricted to the original device only' });
@@ -100,7 +101,7 @@ const checkTokenStatus = async (req, res, next) => {
 
 // Endpoint to send login email
 app.post("/login-email", async (req, res) => {
-  const { email , deviceId  } = req.body;
+  const { email, deviceId } = req.body;
   const clientIpAddress = req.ip;
 
   if (!email) {
@@ -108,7 +109,7 @@ app.post("/login-email", async (req, res) => {
   }
 
   try {
-    const token = jwt.sign({ email , deviceId  }, secret, { expiresIn: "4m" });
+    const token = jwt.sign({ email, deviceId }, secret, { expiresIn: "4m" });
     const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
 
     const mailOptions = {
@@ -121,12 +122,11 @@ app.post("/login-email", async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
-    const userAgent = req.headers["user-agent"];
     const fingerprint = generateFingerprint(req);
 
     await Token.findOneAndUpdate(
       { email },
-      { email, token, createdAt: Date.now(), isUsed: 1, userAgent, fingerprint, ipAddress: clientIpAddress , deviceId  },
+      { email, token, createdAt: Date.now(), isUsed: 1, userAgent: req.headers["user-agent"], fingerprint, ipAddress: clientIpAddress, deviceId },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
