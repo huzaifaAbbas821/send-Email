@@ -52,7 +52,11 @@ const transporter = nodemailer.createTransport({
 const generateFingerprint = (req) => {
   const parser = new UAParser();
   const uaResult = parser.setUA(req.headers["user-agent"]).getResult();
-  const fingerprintData = `${uaResult.browser.name}-${uaResult.browser.version}-${uaResult.os.name}-${uaResult.os.version}-${req.ip}`;
+  const deviceModel  = uaResult.device.model;
+  const deviceType  = uaResult.device.type;
+  const deviceVendor  = uaResult.device.vendor;
+
+  const fingerprintData = `${uaResult.browser.name}-${uaResult.browser.version}-${uaResult.os.name}-${uaResult.os.version}-${deviceModel}-${deviceType}-${deviceVendor}-${req.ip}`;
   return crypto.createHash('sha256').update(fingerprintData).digest('hex');
 };
 
