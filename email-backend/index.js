@@ -158,7 +158,7 @@ app.post("/login-email", async (req, res) => {
     await Token.updateMany({ email, isUsed: 1 }, { $set: { isUsed: 2 } });
 
     const token = jwt.sign({ email, deviceId }, secret, { expiresIn: "4m" });
-    const loginLink = `https://your-frontend-url/verify-token?token=${token}`;
+    const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
 
     const mailOptions = {
       from: emailUser,
