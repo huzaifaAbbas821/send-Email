@@ -25,7 +25,6 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/verify-token" element={<Verify />} />
-        <Route path="/home" element={<Home />} />
       </Routes>
     </Router>
   );

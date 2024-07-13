@@ -70,6 +70,43 @@ const generateFingerprint = (req) => {
 };
 
 // Middleware to check if the token is valid and not expired
+// const checkTokenStatus = async (req, res, next) => {
+//   const token = req.query.token;
+//   const clientIpAddress = req.ip;
+
+//   try {
+//     const tokenDoc = await Token.findOne({ token });
+
+//     if (!tokenDoc) {
+//       return res.status(400).json({ message: "Invalid or expired token" });
+//     }
+
+//     if (tokenDoc.isUsed !== 1) {
+//       return res.status(400).json({ message: "Token has already been used or expired" });
+//     }
+
+//     const fingerprint = generateFingerprint(req);
+//     if (tokenDoc.fingerprint !== fingerprint) {
+//       return res.status(400).json({ message: "Access restricted to the original device and browser only" });
+//     }
+
+//     if (tokenDoc.ipAddress !== clientIpAddress) {
+//       return res.status(400).json({ message: "Access restricted to the original IP address only" });
+//     }
+
+//     const decoded = jwt.verify(token, secret);
+//     if (tokenDoc.deviceId !== decoded.deviceId) {
+//       return res.status(400).json({ message: "Access restricted to the original device only" });
+//     }
+
+//     req.tokenDoc = tokenDoc;
+//     next();
+//   } catch (error) {
+//     console.error("Error checking token status:", error);
+//     res.status(500).json({ message: "Internal server error" });
+//   }
+// };
+
 const checkTokenStatus = async (req, res, next) => {
   const token = req.query.token;
   const clientIpAddress = req.ip;
@@ -107,7 +144,47 @@ const checkTokenStatus = async (req, res, next) => {
   }
 };
 
+
 // Endpoint to send login email
+// app.post("/login-email", async (req, res) => {
+//   const { email, deviceId } = req.body;
+//   const clientIpAddress = req.ip;
+
+//   if (!email) {
+//     return res.status(400).json({ message: "Email is required" });
+//   }
+
+//   try {
+//     // Invalidate any previous tokens for this email
+//     await Token.updateMany({ email, isUsed: 1 }, { isUsed: 2 });
+
+//     const token = jwt.sign({ email, deviceId }, secret, { expiresIn: "4m" });
+//     const loginLink = `https://your-frontend-url/verify-token?token=${token}`;
+
+//     const mailOptions = {
+//       from: emailUser,
+//       to: email,
+//       subject: "Login Link",
+//       text: `Click the link to log in: ${loginLink}`,
+//       html: `<p>Click the link to log in: <a href="${loginLink}">${loginLink}</a></p>`,
+//     };
+
+//     await transporter.sendMail(mailOptions);
+
+//     const fingerprint = generateFingerprint(req);
+
+//     await Token.findOneAndUpdate(
+//       { email },
+//       { email, token, createdAt: Date.now(), isUsed: 1, userAgent: req.headers["user-agent"], fingerprint, ipAddress: clientIpAddress, deviceId },
+//       { upsert: true, new: true, setDefaultsOnInsert: true }
+//     );
+
+//     res.status(200).json({ message: "Login link sent and user data saved" });
+//   } catch (error) {
+//     console.error("Error sending email or saving token:", error);
+//     res.status(500).json({ message: "Error sending email or saving token" });
+//   }
+// });
 app.post("/login-email", async (req, res) => {
   const { email, deviceId } = req.body;
   const clientIpAddress = req.ip;
@@ -124,7 +201,7 @@ app.post("/login-email", async (req, res) => {
     await Token.updateMany({ email, isUsed: 1 }, { isUsed: 2 });
 
     const token = jwt.sign({ email, deviceId, sessionId }, secret, { expiresIn: "4m" });
-    const loginLink = `https://your-frontend-url/verify-token?token=${token}`;
+    const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
 
     const mailOptions = {
       from: emailUser,
@@ -150,6 +227,8 @@ app.post("/login-email", async (req, res) => {
     res.status(500).json({ message: "Error sending email or saving token" });
   }
 });
+
+
 
 // Endpoint to update payment status
 app.post("/update-payment-status", async (req, res) => {
@@ -184,7 +263,7 @@ app.get("/verify-token", checkTokenStatus, async (req, res) => {
 
     try {
       await tokenDoc.updateOne({ $set: { isUsed: 2 } });
-      res.status(200).json({ message: "Token verified", handle: true, Payment: tokenDoc.payment });
+      res.status(200).json({ message: "Working", handle: true, Payment: tokenDoc.payment });
     } catch (updateError) {
       console.error("Error updating token status:", updateError);
       res.status(500).json({ message: "Internal server error" });
@@ -219,7 +298,7 @@ app.post("/create-payment-intent", async (req, res) => {
 });
 
 // Catch-all route for undefined routes
-app.use('*', (req, res) => {
+app.use('/', (req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 

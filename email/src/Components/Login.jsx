@@ -1,10 +1,6 @@
 import React, { useState ,useEffect } from "react";
 import UAParser from "ua-parser-js";
 
-
-
-
-
 function Login() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState(""); // State for feedback messages

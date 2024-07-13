@@ -6,16 +6,16 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import { useNavigate } from "react-router-dom";
+import Home from "./Home";
 
 const CheckoutForm = () => {
   const stripe = useStripe();
   const elements = useElements();
-  const navigate = useNavigate();
   const [nameOnCard, setNameOnCard] = useState("");
   const [coupon, setCoupon] = useState("");
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [error, setError] = useState(null);
+  const [paymentSucceeded, setPaymentSucceeded] = useState(false); // New state to handle success
 
   const cardElementOptions = {
     style: {
@@ -55,6 +55,10 @@ const CheckoutForm = () => {
         body: JSON.stringify({ amount: coupon === 'itsAizaz' ? (4000 * 0.9) : 4000 }), // Specify the payment amount in the smallest currency unit
       });
 
+      if (!response.ok) {
+        throw new Error("Failed to fetch client secret");
+      }
+
       const { clientSecret } = await response.json();
 
       const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
@@ -68,12 +72,16 @@ const CheckoutForm = () => {
 
       if (error) {
         setError(error.message);
-      } else if (paymentIntent.status === "succeeded") {
+        setPaymentProcessing(false);
+        return;
+      }
+
+      if (paymentIntent.status === "succeeded") {
         alert("Payment succeeded!");
 
         // Send a POST request to update the payment status
         const token = new URLSearchParams(window.location.search).get('token');
-        await fetch("https://send-email-vgp4.vercel.app/update-payment-status", {
+        const updateResponse = await fetch("https://send-email-vgp4.vercel.app/update-payment-status", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -81,7 +89,12 @@ const CheckoutForm = () => {
           body: JSON.stringify({ token }),
         });
 
-        navigate("/home"); // Redirect to the success page
+        if (!updateResponse.ok) {
+          throw new Error("Failed to update payment status");
+        }
+
+        // Set state to display the Home component
+        setPaymentSucceeded(true);
       }
     } catch (err) {
       setError("Payment failed. Please try again.");
@@ -89,6 +102,10 @@ const CheckoutForm = () => {
 
     setPaymentProcessing(false);
   };
+
+  if (paymentSucceeded) {
+    return <Home />; // Render Home component if payment succeeded
+  }
 
   return (
     <form onSubmit={handleSubmit}>

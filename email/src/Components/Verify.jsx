@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import PaymentComponent from "./Payment";
+import Home from "./Home";
 
-const VerifyToken = ({ authenticateUser }) => {
+const VerifyToken = () => {
   const [message, setMessage] = useState("");
   const [handle, setHandle] = useState(false);
   const [payment, setPayment] = useState(false);
@@ -21,12 +22,7 @@ const VerifyToken = ({ authenticateUser }) => {
           console.log("API Response:", response.data);
           setMessage(response.data.message);
           setHandle(response.data.handle);
-          setPayment(response.data.payment);
-
-          if (response.data.handle && response.data.payment) {
-            authenticateUser(true); // Set authentication status
-            navigate('/home');
-          }
+          setPayment(response.data.Payment);
         })
         .catch((error) => {
           if (error.response) {
@@ -39,7 +35,18 @@ const VerifyToken = ({ authenticateUser }) => {
     } else {
       setMessage("No token provided");
     }
-  }, [location, navigate, authenticateUser]);
+  }, [location]);
+
+  useEffect(() => {
+    console.log("Handle State:", handle);
+  }, [handle]);
+
+  useEffect(() => {
+    if (handle && payment) {
+      <Route path="/home" element={<Home />} />
+      navigate('/home');
+    }
+  }, [handle, payment, navigate]);
 
   if (handle) {
     if (!payment) {
