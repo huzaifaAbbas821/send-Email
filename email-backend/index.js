@@ -49,16 +49,22 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Generate a fingerprint using UAParserJS
+// Improved fingerprint generation
 const generateFingerprint = (req) => {
   const parser = new UAParser();
   const uaResult = parser.setUA(req.headers["user-agent"]).getResult();
-  const deviceModel  = uaResult.device.model || 'unknown';
-  const deviceType  = uaResult.device.type || 'unknown';
-  const deviceVendor  = uaResult.device.vendor || 'unknown';
 
-  const fingerprintData = `${uaResult.browser.name}-${uaResult.browser.version}-${uaResult.os.name}-${uaResult.os.version}-${deviceModel}-${deviceType}-${deviceVendor}-${req.ip}`;
-  return crypto.createHash('sha256').update(fingerprintData).digest('hex');
+  const browserName = uaResult.browser.name || "unknown-browser";
+  const browserVersion = uaResult.browser.version || "unknown-version";
+  const osName = uaResult.os.name || "unknown-os";
+  const osVersion = uaResult.os.version || "unknown-version";
+  const deviceModel = uaResult.device.model || "unknown-model";
+  const deviceType = uaResult.device.type || "unknown-type";
+  const deviceVendor = uaResult.device.vendor || "unknown-vendor";
+  const ipAddress = req.ip || "unknown-ip";
+
+  const fingerprintData = `${browserName}-${browserVersion}-${osName}-${osVersion}-${deviceModel}-${deviceType}-${deviceVendor}-${ipAddress}`;
+  return crypto.createHash("sha256").update(fingerprintData).digest("hex");
 };
 
 // Middleware to check if the token is valid and not expired
@@ -79,16 +85,16 @@ const checkTokenStatus = async (req, res, next) => {
 
     const fingerprint = generateFingerprint(req);
     if (tokenDoc.fingerprint !== fingerprint) {
-      return res.status(400).json({ message: 'Access restricted to the original device and browser only' });
+      return res.status(400).json({ message: "Access restricted to the original device and browser only" });
     }
 
     if (tokenDoc.ipAddress !== clientIpAddress) {
-      return res.status(400).json({ message: 'Access restricted to the original IP address only' });
+      return res.status(400).json({ message: "Access restricted to the original IP address only" });
     }
 
     const decoded = jwt.verify(token, secret);
     if (tokenDoc.deviceId !== decoded.deviceId) {
-      return res.status(400).json({ message: 'Access restricted to the original device only' });
+      return res.status(400).json({ message: "Access restricted to the original device only" });
     }
 
     req.tokenDoc = tokenDoc;
