@@ -1,8 +1,43 @@
-import React, { useState } from "react";
+import React, { useState ,useEffect } from "react";
+import UAParser from "ua-parser-js";
+
+
+
+
 
 function Login() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState(""); // State for feedback messages
+  const parser = new UAParser();
+  const result = parser.getResult();
+  
+  function generateDeviceId() {
+    const browserName = result.browser.name || '';
+    const browserVersion = result.browser.version || '';
+    const osName = result.os.name || '';
+    const osVersion = result.os.version || '';
+    const deviceModel = result.device.model || '';
+    const deviceType = result.device.type || '';
+    const deviceVendor = result.device.vendor || '';
+    const randomString = Math.random().toString(36).substr(2, 9);
+    const timestamp = Date.now().toString();
+  
+    return `${browserName}-${browserVersion}-${osName}-${osVersion}-${deviceModel}-${deviceType}-${deviceVendor}-${randomString}-${timestamp}`;
+  }
+  
+  function storeDeviceId(deviceId) {
+    localStorage.setItem('deviceId', deviceId);
+  }
+  
+  function getDeviceId() {
+    return localStorage.getItem('deviceId');
+  }
+  
+  let deviceId = getDeviceId();
+  if (!deviceId) {
+    deviceId = generateDeviceId();
+    storeDeviceId(deviceId);
+  }
 
   const sendEmailFnc = async (e) => {
     e.preventDefault();
@@ -17,7 +52,7 @@ function Login() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email}),
+        body: JSON.stringify({ email , deviceId}),
       });
 
       const data = await response.json();

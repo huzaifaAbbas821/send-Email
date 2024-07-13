@@ -27,6 +27,7 @@ const tokenSchema = new mongoose.Schema({
   userAgent: String,
   fingerprint: String,
   ipAddress: String,
+  deviceId:String,
 });
 const Token = mongoose.model("Token", tokenSchema);
 
@@ -84,6 +85,10 @@ const checkTokenStatus = async (req, res, next) => {
     if (tokenDoc.ipAddress !== clientIpAddress) {
       return res.status(400).json({ message: 'Access restricted to the original IP address only' });
     }
+    const decoded = jwt.verify(token, secret);
+    if (tokenDoc.deviceId !== decoded.deviceId) {
+      return res.status(400).json({ message: 'Access restricted to the original device only' });
+    }
 
     req.tokenDoc = tokenDoc;
     next();
@@ -95,7 +100,7 @@ const checkTokenStatus = async (req, res, next) => {
 
 // Endpoint to send login email
 app.post("/login-email", async (req, res) => {
-  const { email } = req.body;
+  const { email , deviceId  } = req.body;
   const clientIpAddress = req.ip;
 
   if (!email) {
@@ -103,7 +108,7 @@ app.post("/login-email", async (req, res) => {
   }
 
   try {
-    const token = jwt.sign({ email }, secret, { expiresIn: "4m" });
+    const token = jwt.sign({ email , deviceId  }, secret, { expiresIn: "4m" });
     const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
 
     const mailOptions = {
@@ -121,7 +126,7 @@ app.post("/login-email", async (req, res) => {
 
     await Token.findOneAndUpdate(
       { email },
-      { email, token, createdAt: Date.now(), isUsed: 1, userAgent, fingerprint, ipAddress: clientIpAddress },
+      { email, token, createdAt: Date.now(), isUsed: 1, userAgent, fingerprint, ipAddress: clientIpAddress , deviceId  },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
