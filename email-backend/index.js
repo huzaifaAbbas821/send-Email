@@ -115,8 +115,12 @@ app.post("/login-email", async (req, res) => {
   }
 
   try {
+    // Invalidate any previous tokens for this email
+    await Token.updateMany({ email, isUsed: 1 }, { isUsed: 2 });
+
     const token = jwt.sign({ email, deviceId }, secret, { expiresIn: "4m" });
     const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
+
 
     const mailOptions = {
       from: emailUser,
@@ -219,3 +223,4 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
