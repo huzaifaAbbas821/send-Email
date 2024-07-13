@@ -106,6 +106,45 @@ const checkTokenStatus = async (req, res, next) => {
 };
 
 // Endpoint to send login email
+// app.post("/login-email", async (req, res) => {
+//   const { email, deviceId } = req.body;
+//   const clientIpAddress = req.ip;
+
+//   if (!email) {
+//     return res.status(400).json({ message: "Email is required" });
+//   }
+
+//   try {
+//     // Invalidate any previous tokens for this email
+//     await Token.updateMany({ email, isUsed: 1 }, { isUsed: 2 });
+
+//     const token = jwt.sign({ email, deviceId }, secret, { expiresIn: "4m" });
+//     const loginLink = `https://your-frontend-url/verify-token?token=${token}`;
+
+//     const mailOptions = {
+//       from: emailUser,
+//       to: email,
+//       subject: "Login Link",
+//       text: `Click the link to log in: ${loginLink}`,
+//       html: `<p>Click the link to log in: <a href="${loginLink}">${loginLink}</a></p>`,
+//     };
+
+//     await transporter.sendMail(mailOptions);
+
+//     const fingerprint = generateFingerprint(req);
+
+//     await Token.findOneAndUpdate(
+//       { email },
+//       { email, token, createdAt: Date.now(), isUsed: 1, userAgent: req.headers["user-agent"], fingerprint, ipAddress: clientIpAddress, deviceId },
+//       { upsert: true, new: true, setDefaultsOnInsert: true }
+//     );
+
+//     res.status(200).json({ message: "Login link sent and user data saved" });
+//   } catch (error) {
+//     console.error("Error sending email or saving token:", error);
+//     res.status(500).json({ message: "Error sending email or saving token" });
+//   }
+// });
 app.post("/login-email", async (req, res) => {
   const { email, deviceId } = req.body;
   const clientIpAddress = req.ip;
@@ -116,11 +155,10 @@ app.post("/login-email", async (req, res) => {
 
   try {
     // Invalidate any previous tokens for this email
-    await Token.updateMany({ email, isUsed: 1 }, { isUsed: 2 });
+    await Token.updateMany({ email, isUsed: 1 }, { $set: { isUsed: 2 } });
 
     const token = jwt.sign({ email, deviceId }, secret, { expiresIn: "4m" });
-    const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
-
+    const loginLink = `https://your-frontend-url/verify-token?token=${token}`;
 
     const mailOptions = {
       from: emailUser,
@@ -146,6 +184,7 @@ app.post("/login-email", async (req, res) => {
     res.status(500).json({ message: "Error sending email or saving token" });
   }
 });
+
 
 // Endpoint to update payment status
 app.post("/update-payment-status", async (req, res) => {
@@ -223,4 +262,3 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-
