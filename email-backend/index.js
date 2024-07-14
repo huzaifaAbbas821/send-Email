@@ -108,7 +108,6 @@ const checkTokenStatus = async (req, res, next) => {
   }
 };
 
-// Endpoint to send login email
 app.post("/login-email", async (req, res) => {
   const { email, deviceId } = req.body;
   const clientIpAddress = req.ip;
@@ -144,6 +143,21 @@ app.post("/login-email", async (req, res) => {
     };
 
     await transporter.sendMail(mailOptions);
+
+    const fingerprint = generateFingerprint(req);
+
+    await Token.findOneAndUpdate(
+      { email },
+      { email, token, createdAt: Date.now(), isUsed: 1, userAgent: req.headers["user-agent"], fingerprint, ipAddress: clientIpAddress, deviceId, sessionId },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    res.status(200).json({ message: "Login link sent and user data saved" });
+  } catch (error) {
+    console.error("Error sending email or saving token:", error);
+    res.status(500).json({ message: "Error sending email or saving token", error: error.message });
+  }
+});
 
     const fingerprint = generateFingerprint(req);
 
