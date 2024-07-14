@@ -7,33 +7,33 @@ function Login() {
   const parser = new UAParser();
   const result = parser.getResult();
   
-  function generateDeviceId() {
-    const browserName = result.browser.name || '';
-    const browserVersion = result.browser.version || '';
-    const osName = result.os.name || '';
-    const osVersion = result.os.version || '';
-    const deviceModel = result.device.model || '';
-    const deviceType = result.device.type || '';
-    const deviceVendor = result.device.vendor || '';
-    const randomString = Math.random().toString(36).substr(2, 9);
-    const timestamp = Date.now().toString();
+  // function generateDeviceId() {
+  //   const browserName = result.browser.name || '';
+  //   const browserVersion = result.browser.version || '';
+  //   const osName = result.os.name || '';
+  //   const osVersion = result.os.version || '';
+  //   const deviceModel = result.device.model || '';
+  //   const deviceType = result.device.type || '';
+  //   const deviceVendor = result.device.vendor || '';
+  //   const randomString = Math.random().toString(36).substr(2, 9);
+  //   const timestamp = Date.now().toString();
   
-    return `${browserName}-${browserVersion}-${osName}-${osVersion}-${deviceModel}-${deviceType}-${deviceVendor}-${randomString}-${timestamp}`;
-  }
+  //   return `${browserName}-${browserVersion}-${osName}-${osVersion}-${deviceModel}-${deviceType}-${deviceVendor}-${randomString}-${timestamp}`;
+  // }
   
-  function storeDeviceId(deviceId) {
-    localStorage.setItem('deviceId', deviceId);
-  }
+  // function storeDeviceId(deviceId) {
+  //   localStorage.setItem('deviceId', deviceId);
+  // }
   
-  function getDeviceId() {
-    return localStorage.getItem('deviceId');
-  }
+  // function getDeviceId() {
+  //   return localStorage.getItem('deviceId');
+  // }
   
-  let deviceId = getDeviceId();
-  if (!deviceId) {
-    deviceId = generateDeviceId();
-    storeDeviceId(deviceId);
-  }
+  // let deviceId = getDeviceId();
+  // if (!deviceId) {
+  //   deviceId = generateDeviceId();
+  //   storeDeviceId(deviceId);
+  // }
 
   const sendEmailFnc = async (e) => {
     e.preventDefault();
@@ -48,7 +48,7 @@ function Login() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email , deviceId}),
+        body: JSON.stringify({ email }),
       });
 
       const data = await response.json();

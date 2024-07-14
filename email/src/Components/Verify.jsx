@@ -43,8 +43,7 @@ const VerifyToken = () => {
 
   useEffect(() => {
     if (handle && payment) {
-      <Route path="/home" element={<Home />} />
-      navigate('/home');
+      return <Home/>;
     }
   }, [handle, payment, navigate]);
 

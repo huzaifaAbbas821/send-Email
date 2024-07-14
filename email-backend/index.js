@@ -28,7 +28,7 @@ const tokenSchema = new mongoose.Schema({
   userAgent: String,
   fingerprint: String,
   ipAddress: String,
-  deviceId: String,
+  // deviceId: String,
   sessionId: String, // Ensure sessionId is included
 });
 
@@ -95,10 +95,10 @@ const checkTokenStatus = async (req, res, next) => {
       return res.status(400).json({ message: "Access restricted to the original IP address only" });
     }
 
-    const decoded = jwt.verify(token, secret);
-    if (tokenDoc.deviceId !== decoded.deviceId || tokenDoc.sessionId !== decoded.sessionId) {
-      return res.status(400).json({ message: "Access restricted to the original device and session only" });
-    }
+    // const decoded = jwt.verify(token, secret);
+    // if (tokenDoc.deviceId !== decoded.deviceId || tokenDoc.sessionId !== decoded.sessionId) {
+    //   return res.status(400).json({ message: "Access restricted to the original device and session only" });
+    // }
 
     req.tokenDoc = tokenDoc;
     next();
@@ -109,7 +109,7 @@ const checkTokenStatus = async (req, res, next) => {
 };
 
 app.post("/login-email", async (req, res) => {
-  const { email, deviceId } = req.body;
+  const { email } = req.body;
   const clientIpAddress = req.ip;
 
   if (!email) {
@@ -131,7 +131,7 @@ app.post("/login-email", async (req, res) => {
     await Token.updateMany({ email, isUsed: 1 }, { isUsed: 2 });
 
     const sessionId = crypto.randomBytes(16).toString("hex");
-    const token = jwt.sign({ email, deviceId, sessionId }, secret, { expiresIn: "4m" });
+    const token = jwt.sign({ email, sessionId }, secret, { expiresIn: "4m" });
     const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
 
     const mailOptions = {
@@ -148,7 +148,7 @@ app.post("/login-email", async (req, res) => {
 
     await Token.findOneAndUpdate(
       { email },
-      { email, token, createdAt: Date.now(), isUsed: 1, userAgent: req.headers["user-agent"], fingerprint, ipAddress: clientIpAddress, deviceId, sessionId },
+      { email, token, createdAt: Date.now(), isUsed: 1, userAgent: req.headers["user-agent"], fingerprint, ipAddress: clientIpAddress, sessionId },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
@@ -159,20 +159,6 @@ app.post("/login-email", async (req, res) => {
   }
 });
 
-    const fingerprint = generateFingerprint(req);
-
-    await Token.findOneAndUpdate(
-      { email },
-      { email, token, createdAt: Date.now(), isUsed: 1, userAgent: req.headers["user-agent"], fingerprint, ipAddress: clientIpAddress, deviceId, sessionId },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
-
-    res.status(200).json({ message: "Login link sent and user data saved" });
-  } catch (error) {
-    console.error("Error sending email or saving token:", error);
-    res.status(500).json({ message: "Error sending email or saving token" });
-  }
-});
 
 // Endpoint to update payment status
 app.post("/update-payment-status", async (req, res) => {
