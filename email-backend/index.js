@@ -52,9 +52,10 @@ const transporter = nodemailer.createTransport({
 const generateFingerprint = (req) => {
   const parser = new UAParser();
   const uaResult = parser.setUA(req.headers["user-agent"]).getResult();
-  const fingerprintData = `${uaResult.browser.name}-${uaResult.browser.version}-${uaResult.os.name}-${uaResult.os.version}-${req.ip}`;
+  const fingerprintData = `${uaResult.browser.name}-${uaResult.browser.version}-${uaResult.os.name}-${uaResult.os.version}-${req.headers['user-agent']}`;
   return crypto.createHash('sha256').update(fingerprintData).digest('hex');
 };
+
 
 // Middleware to check if the token is valid and not expired
 const checkTokenStatus = async (req, res, next) => {

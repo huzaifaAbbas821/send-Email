@@ -8,9 +8,10 @@ function Login() {
   const generateFingerprint = () => {
     const parser = new UAParser();
     const uaResult = parser.getResult();
-    const fingerprintData = `${uaResult.browser.name}-${uaResult.browser.version}-${uaResult.os.name}-${uaResult.os.version}-${navigator.userAgent}-${window.location.hostname}`;
-    return btoa(fingerprintData); // Encode as base64
+    const fingerprintData = `${uaResult.browser.name}-${uaResult.browser.version}-${uaResult.os.name}-${uaResult.os.version}-${navigator.userAgent}`;
+    return btoa(fingerprintData); // Encode as base64 for consistency
   };
+  
 
   const sendEmailFnc = async (e) => {
     e.preventDefault();
