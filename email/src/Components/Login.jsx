@@ -5,12 +5,12 @@ function Login() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState(""); // State for feedback messages
 
-  const generateFingerprint = () => {
-    const parser = new UAParser();
-    const uaResult = parser.getResult();
-    const fingerprintData = `${uaResult.browser.name}-${uaResult.browser.version}-${uaResult.os.name}-${uaResult.os.version}-${navigator.userAgent}`;
-    return btoa(fingerprintData); // Encode as base64 for consistency
-  };
+  // const generateFingerprint = () => {
+  //   const parser = new UAParser();
+  //   const uaResult = parser.getResult();
+  //   const fingerprintData = `${uaResult.browser.name}-${uaResult.browser.version}-${uaResult.os.name}-${uaResult.os.version}-${navigator.userAgent}`;
+  //   return btoa(fingerprintData); // Encode as base64 for consistency
+  // };
   
 
   const sendEmailFnc = async (e) => {
@@ -26,7 +26,7 @@ function Login() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, fingerprint: generateFingerprint() }), // Include fingerprint in the request body
+        body: JSON.stringify({ email }), // Include fingerprint in the request body
       });
 
       const data = await response.json();
