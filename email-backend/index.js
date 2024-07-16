@@ -8,7 +8,6 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const mongoose = require("mongoose");
 const UAParser = require("ua-parser-js");
-const jwt_decode = require('jwt-decode');
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -22,16 +21,13 @@ mongoose
 const tokenSchema = new mongoose.Schema({
   email: String,
   token: String,
-  createdAt: { type: Date, default: Date.now, expires: "10m" },
+  createdAt: { type: Date, default: Date.now, expires: "10m" }, // TTL index
   payment: { type: Boolean, default: false },
   isUsed: { type: Number, default: 1 },
   userAgent: String,
   fingerprint: String,
   ipAddress: String,
-  // deviceId: String,
-  sessionId: String, // Ensure sessionId is included
 });
-
 const Token = mongoose.model("Token", tokenSchema);
 
 const app = express();
@@ -52,22 +48,12 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Improved fingerprint generation
+// Generate a fingerprint using UAParserJS
 const generateFingerprint = (req) => {
   const parser = new UAParser();
   const uaResult = parser.setUA(req.headers["user-agent"]).getResult();
-
-  const browserName = uaResult.browser.name || "unknown-browser";
-  const browserVersion = uaResult.browser.version || "unknown-version";
-  const osName = uaResult.os.name || "unknown-os";
-  const osVersion = uaResult.os.version || "unknown-version";
-  const deviceModel = uaResult.device.model || "unknown-model";
-  const deviceType = uaResult.device.type || "unknown-type";
-  const deviceVendor = uaResult.device.vendor || "unknown-vendor";
-  const ipAddress = req.ip || "unknown-ip";
-
-  const fingerprintData = `${browserName}-${browserVersion}-${osName}-${osVersion}-${deviceModel}-${deviceType}-${deviceVendor}-${ipAddress}`;
-  return crypto.createHash("sha256").update(fingerprintData).digest("hex");
+  const fingerprintData = `${uaResult.browser.name}-${uaResult.browser.version}-${uaResult.os.name}-${uaResult.os.version}-${req.ip}`;
+  return crypto.createHash('sha256').update(fingerprintData).digest('hex');
 };
 
 // Middleware to check if the token is valid and not expired
@@ -88,17 +74,12 @@ const checkTokenStatus = async (req, res, next) => {
 
     const fingerprint = generateFingerprint(req);
     if (tokenDoc.fingerprint !== fingerprint) {
-      return res.status(400).json({ message: "Access restricted to the original device and browser only" });
+      return res.status(400).json({ message: 'Access restricted to the original device and browser only' });
     }
 
     if (tokenDoc.ipAddress !== clientIpAddress) {
-      return res.status(400).json({ message: "Access restricted to the original IP address only" });
+      return res.status(400).json({ message: 'Access restricted to the original IP address only' });
     }
-
-    // const decoded = jwt.verify(token, secret);
-    // if (tokenDoc.deviceId !== decoded.deviceId || tokenDoc.sessionId !== decoded.sessionId) {
-    //   return res.status(400).json({ message: "Access restricted to the original device and session only" });
-    // }
 
     req.tokenDoc = tokenDoc;
     next();
@@ -108,8 +89,9 @@ const checkTokenStatus = async (req, res, next) => {
   }
 };
 
+// Endpoint to send login email
 app.post("/login-email", async (req, res) => {
-  const { email } = req.body;
+  const { email, fingerprint } = req.body;
   const clientIpAddress = req.ip;
 
   if (!email) {
@@ -119,7 +101,7 @@ app.post("/login-email", async (req, res) => {
   try {
     const oldToken = await Token.findOne({ email });
     if (oldToken) {
-      const decoded = jwt_decode(oldToken.token);
+      const decoded = jwt.decode(oldToken.token);
       const currentTime = Math.floor(Date.now() / 1000);
 
       if (decoded.exp > currentTime) {
@@ -127,11 +109,7 @@ app.post("/login-email", async (req, res) => {
       }
     }
 
-    // Invalidate any previous tokens for this email
-    await Token.updateMany({ email, isUsed: 1 }, { isUsed: 2 });
-
-    const sessionId = crypto.randomBytes(16).toString("hex");
-    const token = jwt.sign({ email, sessionId }, secret, { expiresIn: "4m" });
+    const token = jwt.sign({ email }, secret, { expiresIn: "4m" });
     const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
 
     const mailOptions = {
@@ -144,21 +122,19 @@ app.post("/login-email", async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
-    const fingerprint = generateFingerprint(req);
-
+    const userAgent = req.headers["user-agent"];
     await Token.findOneAndUpdate(
       { email },
-      { email, token, createdAt: Date.now(), isUsed: 1, userAgent: req.headers["user-agent"], fingerprint, ipAddress: clientIpAddress, sessionId },
+      { email, token, createdAt: Date.now(), isUsed: 1, userAgent, fingerprint, ipAddress: clientIpAddress },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
     res.status(200).json({ message: "Login link sent and user data saved" });
   } catch (error) {
     console.error("Error sending email or saving token:", error);
-    res.status(500).json({ message: "Error sending email or saving token", error: error.message });
+    res.status(500).json({ message: "Error sending email or saving token" });
   }
 });
-
 
 // Endpoint to update payment status
 app.post("/update-payment-status", async (req, res) => {
@@ -193,7 +169,7 @@ app.get("/verify-token", checkTokenStatus, async (req, res) => {
 
     try {
       await tokenDoc.updateOne({ $set: { isUsed: 2 } });
-      res.status(200).json({ message: "Token verified successfully", handle: true, Payment: tokenDoc.payment });
+      res.status(200).json({ message: "Working", handle: true, Payment: tokenDoc.payment });
     } catch (updateError) {
       console.error("Error updating token status:", updateError);
       res.status(500).json({ message: "Internal server error" });
