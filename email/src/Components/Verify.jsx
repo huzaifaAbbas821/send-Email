@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
-import PaymentComponent from "./Payment";
+// import PaymentComponent from "./Payment";
 import Home from "./Home";
 
 const VerifyToken = () => {
@@ -43,13 +43,13 @@ const VerifyToken = () => {
 
   useEffect(() => {
     if (handle && payment) {
-      return <Home/>;
+      navigate("/home");
     }
   }, [handle, payment, navigate]);
 
   if (handle) {
     if (!payment) {
-      return <PaymentComponent />;
+      navigate("/payment");
     }
     return null;
   } else {
