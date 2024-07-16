@@ -18,6 +18,16 @@ mongoose
   .catch((err) => console.error("Failed to connect to MongoDB", err));
 
 // Define the Token schema and model
+// const tokenSchema = new mongoose.Schema({
+//   email: String,
+//   token: String,
+//   createdAt: { type: Date, default: Date.now, expires: "10m" }, // TTL index
+//   payment: { type: Boolean, default: false },
+//   isUsed: { type: Number, default: 1 },
+//   userAgent: String,
+//   fingerprint: String,
+//   ipAddress: String,
+// });
 const tokenSchema = new mongoose.Schema({
   email: String,
   token: String,
@@ -27,7 +37,10 @@ const tokenSchema = new mongoose.Schema({
   userAgent: String,
   fingerprint: String,
   ipAddress: String,
+  isActive: { type: Boolean, default: true }, // New field to manage token status
 });
+
+
 const Token = mongoose.model("Token", tokenSchema);
 
 const app = express();
@@ -106,8 +119,77 @@ const checkTokenStatus = async (req, res, next) => {
 };
 
 // Endpoint to send login email
+// app.post("/login-email", async (req, res) => {
+//   const { email, fingerprint } = req.body;
+//   const clientIpAddress = req.ip;
+
+//   if (!email) {
+//     return res.status(400).json({ message: "Email is required" });
+//   }
+
+//   try {
+//     const oldToken = await Token.findOne({ email });
+
+//     if (oldToken) {
+//       const decoded = jwt.decode(oldToken.token);
+//       const currentTime = Math.floor(Date.now() / 1000);
+
+//       if (decoded.exp > currentTime) {
+//         if (oldToken.fingerprint === fingerprint) {
+//           const newToken = jwt.sign({ email }, secret, { expiresIn: "4m" });
+//           const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${newToken}`;
+
+//           const mailOptions = {
+//             from: emailUser,
+//             to: email,
+//             subject: "Login Link",
+//             text: `Click the link to log in: ${loginLink}`,
+//             html: `<p>Click the link to log in: <a href="${loginLink}">${loginLink}</a></p>`,
+//           };
+
+//           await transporter.sendMail(mailOptions);
+
+//           oldToken.token = newToken;
+//           oldToken.isUsed = 1;
+//           oldToken.createdAt = Date.now();
+//           await oldToken.save();
+
+//           return res.status(200).json({ message: "Login link sent and token updated" });
+//         } else {
+//           return res.status(400).json({ message: "Account on this email is still logged in on another device" });
+//         }
+//       }
+//     }
+
+//     const token = jwt.sign({ email }, secret, { expiresIn: "4m" });
+//     const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
+
+//     const mailOptions = {
+//       from: emailUser,
+//       to: email,
+//       subject: "Login Link",
+//       text: `Click the link to log in: ${loginLink}`,
+//       html: `<p>Click the link to log in: <a href="${loginLink}">${loginLink}</a></p>`,
+//     };
+
+//     await transporter.sendMail(mailOptions);
+
+//     const userAgent = req.headers["user-agent"];
+//     const newFingerprint = generateFingerprint(req);
+//     await Token.findOneAndUpdate(
+//       { email },
+//       { email, token, createdAt: Date.now(), isUsed: 1, userAgent, fingerprint: newFingerprint, ipAddress: clientIpAddress },
+//       { upsert: true, new: true, setDefaultsOnInsert: true }
+//     );
+
+//     res.status(200).json({ message: "Login link sent and user data saved" });
+//   } catch (error) {
+//     console.error("Error sending email or saving token:", error);
+//     res.status(500).json({ message: "Error sending email or saving token" });
+//   }
+// });
 app.post("/login-email", async (req, res) => {
-  const { email, fingerprint } = req.body;
+  const { email } = req.body;
   const clientIpAddress = req.ip;
 
   if (!email) {
@@ -115,38 +197,8 @@ app.post("/login-email", async (req, res) => {
   }
 
   try {
-    const oldToken = await Token.findOne({ email });
-
-    if (oldToken) {
-      const decoded = jwt.decode(oldToken.token);
-      const currentTime = Math.floor(Date.now() / 1000);
-
-      if (decoded.exp > currentTime) {
-        if (oldToken.fingerprint === fingerprint) {
-          const newToken = jwt.sign({ email }, secret, { expiresIn: "4m" });
-          const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${newToken}`;
-
-          const mailOptions = {
-            from: emailUser,
-            to: email,
-            subject: "Login Link",
-            text: `Click the link to log in: ${loginLink}`,
-            html: `<p>Click the link to log in: <a href="${loginLink}">${loginLink}</a></p>`,
-          };
-
-          await transporter.sendMail(mailOptions);
-
-          oldToken.token = newToken;
-          oldToken.isUsed = 1;
-          oldToken.createdAt = Date.now();
-          await oldToken.save();
-
-          return res.status(200).json({ message: "Login link sent and token updated" });
-        } else {
-          return res.status(400).json({ message: "Account on this email is still logged in on another device" });
-        }
-      }
-    }
+    // Invalidate old tokens
+    await Token.updateMany({ email, isActive: true }, { $set: { isActive: false } });
 
     const token = jwt.sign({ email }, secret, { expiresIn: "4m" });
     const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${token}`;
@@ -162,10 +214,11 @@ app.post("/login-email", async (req, res) => {
     await transporter.sendMail(mailOptions);
 
     const userAgent = req.headers["user-agent"];
-    const newFingerprint = generateFingerprint(req);
+    const fingerprint = generateFingerprint(req);
+
     await Token.findOneAndUpdate(
       { email },
-      { email, token, createdAt: Date.now(), isUsed: 1, userAgent, fingerprint: newFingerprint, ipAddress: clientIpAddress },
+      { email, token, createdAt: Date.now(), isUsed: 1, userAgent, fingerprint, ipAddress: clientIpAddress, isActive: true },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
