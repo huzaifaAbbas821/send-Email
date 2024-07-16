@@ -137,6 +137,7 @@ app.post("/login-email", async (req, res) => {
           await transporter.sendMail(mailOptions);
 
           oldToken.token = newToken;
+          oldToken.isUsed = 1;
           oldToken.createdAt = Date.now();
           await oldToken.save();
 
