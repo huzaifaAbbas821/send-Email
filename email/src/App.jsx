@@ -18,6 +18,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './Components/Login';
 import Verify from './Components/Verify';
 import Home from './Components/Home';
+import PaymentComponent from './Components/Payment';
 
 const App = () => {
   return (
@@ -25,7 +26,7 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/verify-token" element={<Verify />} />
-        <Route path="/payment" element={<Payment />} />
+        <Route path="/payment" element={<PaymentComponent />} />
       </Routes>
     </Router>
   );
