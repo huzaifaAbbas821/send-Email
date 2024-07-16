@@ -37,8 +37,9 @@ const emailUser = process.env.EMAIL_USER;
 const emailPassword = process.env.EMAIL_PASSWORD;
 
 app.use(bodyParser.json());
-app.use(cors());
-
+app.use(cors({
+  origin: 'https://send-email-murex.vercel.app', // Replace with your frontend URL
+}));
 // Configure Nodemailer
 const transporter = nodemailer.createTransport({
   service: "gmail",
