@@ -37,9 +37,24 @@ const emailUser = process.env.EMAIL_USER;
 const emailPassword = process.env.EMAIL_PASSWORD;
 
 app.use(bodyParser.json());
+
+// Enable CORS for all routes
 app.use(cors({
   origin: 'https://send-email-murex.vercel.app', // Replace with your frontend URL
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"] ,
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
 }));
+
+// Middleware to add CORS headers to the response
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "https://send-email-murex.vercel.app"); // Replace with your frontend URL
+  res.header("Access-Control-Allow-Methods", "GET, POST', 'PUT', 'DELETE', 'OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.header("Access-Control-Allow-Credentials", "true");
+  next();
+});
+
 // Configure Nodemailer
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -56,7 +71,6 @@ const generateFingerprint = (req) => {
   const fingerprintData = `${uaResult.browser.name}-${uaResult.browser.version}-${uaResult.os.name}-${uaResult.os.version}-${req.headers['user-agent']}`;
   return crypto.createHash('sha256').update(fingerprintData).digest('hex');
 };
-
 
 // Middleware to check if the token is valid and not expired
 const checkTokenStatus = async (req, res, next) => {
@@ -93,7 +107,7 @@ const checkTokenStatus = async (req, res, next) => {
 
 // Endpoint to send login email
 app.post("/login-email", async (req, res) => {
-  const { email , fingerprint } = req.body;
+  const { email, fingerprint } = req.body;
   const clientIpAddress = req.ip;
 
   if (!email) {
@@ -102,12 +116,34 @@ app.post("/login-email", async (req, res) => {
 
   try {
     const oldToken = await Token.findOne({ email });
+
     if (oldToken) {
       const decoded = jwt.decode(oldToken.token);
       const currentTime = Math.floor(Date.now() / 1000);
 
       if (decoded.exp > currentTime) {
-        return res.status(400).json({ message: "Account on this email is still logged in on another device" });
+        if (oldToken.fingerprint === fingerprint) {
+          const newToken = jwt.sign({ email }, secret, { expiresIn: "4m" });
+          const loginLink = `https://send-email-murex.vercel.app/verify-token?token=${newToken}`;
+
+          const mailOptions = {
+            from: emailUser,
+            to: email,
+            subject: "Login Link",
+            text: `Click the link to log in: ${loginLink}`,
+            html: `<p>Click the link to log in: <a href="${loginLink}">${loginLink}</a></p>`,
+          };
+
+          await transporter.sendMail(mailOptions);
+
+          oldToken.token = newToken;
+          oldToken.createdAt = Date.now();
+          await oldToken.save();
+
+          return res.status(200).json({ message: "Login link sent and token updated" });
+        } else {
+          return res.status(400).json({ message: "Account on this email is still logged in on another device" });
+        }
       }
     }
 
@@ -125,10 +161,10 @@ app.post("/login-email", async (req, res) => {
     await transporter.sendMail(mailOptions);
 
     const userAgent = req.headers["user-agent"];
-    // const fingerprint = generateFingerprint(req);
+    const newFingerprint = generateFingerprint(req);
     await Token.findOneAndUpdate(
       { email },
-      { email, token, createdAt: Date.now(), isUsed: 1, userAgent, fingerprint, ipAddress: clientIpAddress },
+      { email, token, createdAt: Date.now(), isUsed: 1, userAgent, fingerprint: newFingerprint, ipAddress: clientIpAddress },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
