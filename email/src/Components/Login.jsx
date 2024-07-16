@@ -35,7 +35,8 @@ function Login() {
         // throw new Error(data.message || "Error sending email");
       }
 
-      setMessage("Login link sent. Check your email.");
+      // setMessage("Login link sent. Check your email.");
+      setMessage(data.message);
     } catch (error) {
       console.error("Error sending email:", error);
       setMessage("Error sending email. Please try again.");
