@@ -5,13 +5,15 @@ function Login() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState(""); // State for feedback messages
 
-  // const generateFingerprint = () => {
-  //   const parser = new UAParser();
-  //   const uaResult = parser.getResult();
-  //   const fingerprintData = `${uaResult.browser.name}-${uaResult.browser.version}-${uaResult.os.name}-${uaResult.os.version}-${navigator.userAgent}`;
-  //   return btoa(fingerprintData); // Encode as base64 for consistency
-  // };
-  
+  const generateFingerprint = async () => {
+    const parser = new UAParser();
+    const uaResult = parser.getResult();
+    const fingerprintData = `${uaResult.browser.name}-${uaResult.browser.version}-${uaResult.os.name}-${uaResult.os.version}-${navigator.userAgent}`;
+    const encoder = new TextEncoder();
+    const data = encoder.encode(fingerprintData);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+  };
 
   const sendEmailFnc = async (e) => {
     e.preventDefault();
@@ -21,22 +23,21 @@ function Login() {
     }
 
     try {
+      const fingerprint = await generateFingerprint();
       const response = await fetch("https://send-email-vgp4.vercel.app/login-email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email }), // Include fingerprint in the request body
+        body: JSON.stringify({ email, fingerprint }), // Include fingerprint in the request body
       });
 
       const data = await response.json();
       if (!response.ok) {
-         setMessage(data.message);
-        // throw new Error(data.message || "Error sending email");
+        setMessage(data.message || "Error sending email");
+      } else {
+        setMessage(data.message);
       }
-
-      // setMessage("Login link sent. Check your email.");
-      setMessage(data.message);
     } catch (error) {
       console.error("Error sending email:", error);
       setMessage("Error sending email. Please try again.");

@@ -92,7 +92,7 @@ const checkTokenStatus = async (req, res, next) => {
 
 // Endpoint to send login email
 app.post("/login-email", async (req, res) => {
-  const { email } = req.body;
+  const { email , fingerprint } = req.body;
   const clientIpAddress = req.ip;
 
   if (!email) {
@@ -124,7 +124,7 @@ app.post("/login-email", async (req, res) => {
     await transporter.sendMail(mailOptions);
 
     const userAgent = req.headers["user-agent"];
-    const fingerprint = generateFingerprint(req);
+    // const fingerprint = generateFingerprint(req);
     await Token.findOneAndUpdate(
       { email },
       { email, token, createdAt: Date.now(), isUsed: 1, userAgent, fingerprint, ipAddress: clientIpAddress },
