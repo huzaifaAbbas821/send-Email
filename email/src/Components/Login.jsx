@@ -30,7 +30,8 @@ function Login() {
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || "Error sending email");
+         setMessage(data.message);
+        // throw new Error(data.message || "Error sending email");
       }
 
       setMessage("Login link sent. Check your email.");
