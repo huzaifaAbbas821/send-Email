@@ -9,6 +9,7 @@ function Login() {
     const parser = new UAParser();
     const uaResult = parser.getResult();
     const fingerprintData = `${uaResult.browser.name}-${uaResult.browser.version}-${uaResult.os.name}-${uaResult.os.version}-${navigator.userAgent}`;
+    
     const encoder = new TextEncoder();
     const data = encoder.encode(fingerprintData);
     const hash = await crypto.subtle.digest('SHA-256', data);
@@ -36,7 +37,7 @@ function Login() {
       if (!response.ok) {
         setMessage(data.message || "Error sending email");
       } else {
-        setMessage(data.message);
+        setMessage("Login link sent. Check your email.");
       }
     } catch (error) {
       console.error("Error sending email:", error);
