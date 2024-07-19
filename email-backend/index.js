@@ -68,6 +68,17 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(cors({
+  origin: 'https://send-email-murex.vercel.app', // Replace with your frontend URL
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+  next();
+}));
+
+
+
+
 // Configure Nodemailer
 const transporter = nodemailer.createTransport({
   service: "gmail",
