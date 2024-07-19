@@ -90,7 +90,8 @@ const CheckoutForm = () => {
         });
 
         if (!updateResponse.ok) {
-          throw new Error("Failed to update payment status");
+          // throw new Error("Failed to update payment status");
+          setError("issue in update status");
         }
 
         // Set state to display the Home component
