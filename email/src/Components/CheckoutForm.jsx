@@ -6,9 +6,11 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import Home from "./Home";
+// import Home from "./Home";
+import {useNavigate} from "react-router-dom"
 
 const CheckoutForm = () => {
+  const navigate = useNavigate();
   const stripe = useStripe();
   const elements = useElements();
   const [nameOnCard, setNameOnCard] = useState("");
@@ -77,7 +79,7 @@ const CheckoutForm = () => {
       }
 
       if (paymentIntent.status === "succeeded") {
-        alert("Payment succeeded!");
+        
 
         // Send a POST request to update the payment status
         const token = new URLSearchParams(window.location.search).get('token');
@@ -91,11 +93,13 @@ const CheckoutForm = () => {
 
         if (!updateResponse.ok) {
           // throw new Error("Failed to update payment status");
+           console.error(" issue with updateResponse ")
           setError("issue in update status");
         }
 
         // Set state to display the Home component
         setPaymentSucceeded(true);
+        alert("Payment succeeded!");
       }
     } catch (err) {
       setError("Payment failed. Please try again.");
@@ -105,7 +109,7 @@ const CheckoutForm = () => {
   };
 
   if (paymentSucceeded) {
-    return <Home />; // Render Home component if payment succeeded
+    navigate("/home"); // Render Home component if payment succeeded
   }
 
   return (
