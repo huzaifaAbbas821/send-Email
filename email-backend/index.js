@@ -51,13 +51,13 @@ const emailPassword = process.env.EMAIL_PASSWORD;
 
 app.use(bodyParser.json());
 
-// Enable CORS for all routes
 app.use(cors({
   origin: 'https://send-email-murex.vercel.app', // Replace with your frontend URL
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"] ,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
+
 
 // Middleware to add CORS headers to the response
 app.use((req, res, next) => {
@@ -67,15 +67,6 @@ app.use((req, res, next) => {
   res.header("Access-Control-Allow-Credentials", "true");
   next();
 });
-
-app.use(cors({
-  origin: 'https://send-email-murex.vercel.app', // Replace with your frontend URL
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-  next();
-}));
-
 
 
 
@@ -241,24 +232,47 @@ app.post("/login-email", async (req, res) => {
 });
 
 // Endpoint to update payment status
-app.post("/update-payment-status", async (req, res) => {
-  const { token } = req.body;
+// app.post("/update-payment-status", async (req, res) => {
+//   const { token } = req.body;
 
+//   try {
+//     const tokenDoc = await Token.findOne({ token });
+//     if (!tokenDoc) {
+//       return res.status(404).json({ message: "Token not found" });
+//     }
+
+//     tokenDoc.payment = true;
+//     await tokenDoc.save();
+
+//     res.status(200).json({ message: "Payment status updated successfully" });
+//   } catch (err) {
+//     console.error("Error updating payment status:", err);
+//     res.status(500).json({ message: "An error occurred", error: err.message });
+//   }
+// });
+
+app.post("/update-payment-status", checkTokenStatus, async (req, res) => {
   try {
-    const tokenDoc = await Token.findOne({ token });
-    if (!tokenDoc) {
-      return res.status(404).json({ message: "Token not found" });
+    const { token } = req.body;
+
+    const tokenData = await Token.findOneAndUpdate(
+      { token, isActive: true },
+      { payment: true, isUsed: 0, isActive: false }, // Set payment to true and deactivate the token
+      { new: true }
+    );
+
+    if (!tokenData) {
+      return res.status(404).json({ message: "Token not found or already used" });
     }
 
-    tokenDoc.payment = true;
-    await tokenDoc.save();
-
     res.status(200).json({ message: "Payment status updated successfully" });
-  } catch (err) {
-    console.error("Error updating payment status:", err);
-    res.status(500).json({ message: "An error occurred", error: err.message });
+  } catch (error) {
+    console.error("Error updating payment status:", error);
+    res.status(500).json({ message: "Failed to update payment status" });
   }
 });
+
+
 
 // Endpoint to verify token with middleware applied
 app.get("/verify-token", checkTokenStatus, async (req, res) => {
